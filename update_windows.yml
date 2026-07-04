@@ -1,0 +1,7 @@
+---
+- name: Update Windows computers
+  hosts: windows
+  gather_facts: no
+
+  roles:
+    - windows_update

@@ -1,0 +1,102 @@
+---
+- name: Restrict SSH to Tailscale
+  hosts: windows
+  gather_facts: no
+  serial: 1
+
+  tasks:
+    - name: Remove bad SSH block rule
+      community.windows.win_firewall_rule:
+        name: "Block OpenSSH"
+        state: absent
+
+    - name: Remove OpenSSH firewall rule
+      community.windows.win_firewall_rule:
+        name: "OpenSSH-Server-In-TCP"
+        state: absent
+
+    - name: Allow SSH only from Tailscale
+      community.windows.win_firewall_rule:
+        name: "OpenSSH-Server-In-TCP"
+        localport: 22
+        protocol: tcp
+        action: allow
+        direction: in
+        remoteip: "100.64.0.0/10"
+        enabled: true
+        state: present
+
+    - name: Deny local console logon for localeero
+      ansible.windows.win_user_right:
+        name: SeDenyInteractiveLogonRight
+        users:
+          - localeero
+        action: add
+
+    - name: Deny Remote Desktop logon for localeero
+      ansible.windows.win_user_right:
+        name: SeDenyRemoteInteractiveLogonRight
+        users:
+          - localeero
+        action: add
+
+    - name: Disable Remote Assistance
+      ansible.windows.win_regedit:
+        path: 'HKLM:\SYSTEM\CurrentControlSet\Control\Remote Assistance'
+        name: fAllowToGetHelp
+        data: 0
+        type: dword
+
+    - name: Disable Remote Desktop
+      ansible.windows.win_regedit:
+        path: 'HKLM:\SYSTEM\CurrentControlSet\Control\Terminal Server'
+        name: fDenyTSConnections
+        data: 1
+        type: dword
+
+    - name: Disable Remote Desktop firewall rule
+      community.windows.win_firewall_rule:
+        group: "Remote Desktop"
+        enabled: false
+
+    - name: Configure OpenSSH server authentication
+      ansible.windows.win_powershell:
+        script: |
+          $path = "C:\ProgramData\ssh\sshd_config"
+
+          $settings = @{
+            "PasswordAuthentication"       = "no"
+            "PubkeyAuthentication"         = "yes"
+            "KbdInteractiveAuthentication" = "no"
+            "PermitEmptyPasswords"         = "no"
+          }
+
+          $content = Get-Content $path -ErrorAction Stop
+
+          foreach ($key in $settings.Keys) {
+            $value = $settings[$key]
+            $line = "$key $value"
+
+            if ($content -match "^\s*#?\s*$key\s+") {
+              $content = $content -replace "^\s*#?\s*$key\s+.*", $line
+            }
+            else {
+              $content += $line
+            }
+          }
+
+          Set-Content -Path $path -Value $content -Encoding ascii
+
+    - name: Test sshd configuration
+      ansible.windows.win_shell: |
+        & "$env:WINDIR\System32\OpenSSH\sshd.exe" -t -f "C:\ProgramData\ssh\sshd_config"
+      register: sshd_test
+      changed_when: false
+
+    - name: Restart OpenSSH Server safely
+      ansible.windows.win_shell: |
+        Start-Sleep -Seconds 3
+        Restart-Service sshd -Force
+      async: 30
+      poll: 0
+      when: sshd_test.rc == 0

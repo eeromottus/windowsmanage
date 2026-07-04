@@ -1,0 +1,69 @@
+---
+- name: Install common Windows software
+  hosts: windows
+  gather_facts: false
+
+  vars:
+    software_packages:
+      - name: LibreOffice
+        version: "26.2.4.2"
+        url: "https://download.documentfoundation.org/libreoffice/stable/26.2.4/win/x86_64/LibreOffice_26.2.4_Win_x86-64.msi"
+        installer: "LibreOffice.msi"
+        product: "LibreOffice*"
+        arguments: "/qn /norestart"
+
+      - name: Google Chrome
+        version: ""
+        url: "https://dl.google.com/dl/chrome/install/googlechromestandaloneenterprise64.msi"
+        installer: "GoogleChrome.msi"
+        product: "Google Chrome*"
+        arguments: "/qn /norestart"
+
+      - name: 7-Zip
+        version: "25.01"
+        url: "https://www.7-zip.org/a/7z2501-x64.msi"
+        installer: "7zip.msi"
+        product: "7-Zip*"
+        arguments: "/qn /norestart"
+
+      - name: PDF-XChange Editor
+        version: ""
+        source: local
+        installer: "EditorV11.x64.msi"
+        local_src: "files/EditorV11.x64.msi"
+        product: "PDF-XChange Editor*"
+        arguments: "/qn /norestart"
+        
+      - name: VLC media player
+        version: "3.0.23"
+        source: url
+        url: "https://get.videolan.org/vlc/last/win64/vlc-3.0.23-win64.msi"
+        installer: "vlc.msi"
+        product: "VLC media player*"
+        arguments: "/qn /norestart"
+
+      - name: Notepad++
+        version: "8.9.6.4"
+        source: url
+        url: "https://github.com/notepad-plus-plus/notepad-plus-plus/releases/download/v8.9.6.4/npp.8.9.6.4.Installer.x64.msi"
+        installer: "NotepadPlusPlus.msi"
+        product: "Notepad++*"
+        arguments: "/qn /norestart"
+
+      - name: Microsoft Teams
+        version: ""
+        source: url
+        url: "https://go.microsoft.com/fwlink/?linkid=2243204&clcid=0x409"
+        installer: "TeamsBootstrapper.exe"
+        product: "Microsoft Teams*"
+        arguments: "-p"
+      - name: Zoom Workplace
+        version: ""
+        source: url
+        url: "https://zoom.us/client/latest/ZoomInstallerFull.msi?archType=x64"
+        installer: "ZoomInstallerFull.msi"
+        product: "Zoom Workplace*"
+        arguments: "/qn /norestart"
+
+  roles:
+    - software

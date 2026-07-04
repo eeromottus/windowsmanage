@@ -1,0 +1,6 @@
+---
+- name: Install software packages
+  ansible.builtin.include_tasks: install_one.yml
+  loop: "{{ software_packages }}"
+  loop_control:
+    loop_var: software

@@ -1,0 +1,14 @@
+---
+- name: Install Windows updates
+  ansible.windows.win_updates:
+    category_names:
+      - SecurityUpdates
+      - CriticalUpdates
+      - UpdateRollups
+    reboot: yes
+    reboot_timeout: 3600
+  register: windows_update_result
+
+- name: Show update result
+  debug:
+    var: windows_update_result

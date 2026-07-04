@@ -1,0 +1,9 @@
+---
+- name: Update Estonian ID-card software
+  hosts: windows
+  gather_facts: no
+
+  roles:
+    - idsoftware_check
+    - idsoftware
+    - idsoftware_check_after

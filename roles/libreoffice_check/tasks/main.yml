@@ -1,0 +1,44 @@
+---
+- name: Check installed LibreOffice version
+  ansible.windows.win_powershell:
+    script: |
+      $result = [ordered]@{
+        Installed      = $false
+        DisplayName    = $null
+        DisplayVersion = $null
+        InstallLocation = $null
+      }
+
+      $app = Get-ItemProperty `
+        "HKLM:\Software\Microsoft\Windows\CurrentVersion\Uninstall\*",
+        "HKLM:\Software\WOW6432Node\Microsoft\Windows\CurrentVersion\Uninstall\*" `
+        -ErrorAction SilentlyContinue |
+        Where-Object { $_.DisplayName -like "LibreOffice*" } |
+        Select-Object -First 1
+
+      if ($app) {
+        $result.Installed = $true
+        $result.DisplayName = $app.DisplayName
+        $result.DisplayVersion = $app.DisplayVersion
+        $result.InstallLocation = $app.InstallLocation
+      }
+
+      $result | ConvertTo-Json -Compress
+  register: libreoffice_check
+  changed_when: false
+
+- name: Save LibreOffice status
+  ansible.builtin.set_fact:
+    libreoffice_status: "{{ libreoffice_check.output[0] | from_json }}"
+
+- name: Set LibreOffice installation requirement
+  ansible.builtin.set_fact:
+    libreoffice_install: >-
+      {{
+        (not libreoffice_status.Installed) or
+        ((libreoffice_status.DisplayVersion | default('')) != libreoffice_version)
+      }}
+
+- name: Show LibreOffice status
+  ansible.builtin.debug:
+    var: libreoffice_status

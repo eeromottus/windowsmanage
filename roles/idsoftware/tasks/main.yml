@@ -1,0 +1,81 @@
+---
+- name: Create temporary directory
+  ansible.windows.win_file:
+    path: "{{ idsoftware_temp_dir }}"
+    state: directory
+
+- name: Check installed DigiDoc4 version
+  ansible.windows.win_powershell:
+    script: |
+      $apps = Get-ItemProperty `
+        "HKLM:\Software\Microsoft\Windows\CurrentVersion\Uninstall\*",
+        "HKLM:\Software\WOW6432Node\Microsoft\Windows\CurrentVersion\Uninstall\*" `
+        -ErrorAction SilentlyContinue
+
+      $app = $apps |
+        Where-Object {
+          $_.DisplayName -like "*DigiDoc4*" -or
+          $_.DisplayName -like "*Open-EID*"
+        } |
+        Select-Object -First 1
+
+      if ($app) {
+        $app.DisplayVersion
+      }
+  register: idsoftware_installed
+  changed_when: false
+
+- name: Set installation requirement
+  ansible.builtin.set_fact:
+    idsoftware_install: >-
+      {{
+        idsoftware_installed.output | length == 0 or
+        (idsoftware_installed.output[0] | trim) != idsoftware_version
+      }}
+- name: Download Open-EID installer
+  ansible.windows.win_get_url:
+    url: "{{ idsoftware_url }}"
+    dest: "{{ idsoftware_temp_dir }}\\Open-EID-{{ idsoftware_installer_version }}.exe"
+  when: idsoftware_install
+
+- name: Install Open-EID
+  ansible.windows.win_package:
+    path: "{{ idsoftware_temp_dir }}\\Open-EID-{{ idsoftware_installer_version }}.exe"
+    arguments: "/quiet /norestart"
+    state: present
+  when: idsoftware_install
+
+- name: Verify installed version
+  ansible.windows.win_powershell:
+    script: |
+      $apps = Get-ItemProperty `
+        "HKLM:\Software\Microsoft\Windows\CurrentVersion\Uninstall\*",
+        "HKLM:\Software\WOW6432Node\Microsoft\Windows\CurrentVersion\Uninstall\*" `
+        -ErrorAction SilentlyContinue
+
+      $app = $apps |
+        Where-Object {
+          $_.DisplayName -like "*DigiDoc4*" -or
+          $_.DisplayName -like "*Open-EID*"
+        } |
+        Select-Object -First 1
+
+      if ($app) {
+        $app.DisplayVersion
+      }
+  register: idsoftware_after
+  changed_when: false
+
+- name: Verify correct version
+  ansible.builtin.assert:
+    that:
+      - idsoftware_after.output | length > 0
+      - (idsoftware_after.output[0] | trim) == idsoftware_version
+    success_msg: "DigiDoc4 / Open-EID {{ idsoftware_version }} is installed."
+    fail_msg: "Unexpected DigiDoc4 / Open-EID version."
+
+- name: Remove temporary files
+  ansible.windows.win_file:
+    path: "{{ idsoftware_temp_dir }}"
+    state: absent
+  when: idsoftware_install

@@ -1,0 +1,15 @@
+---
+- name: Restrict SSH to Tailscale
+  hosts: windows
+  gather_facts: no
+  serial: 1
+
+  tasks:
+
+    - name: Deny local console logon for localeero
+      ansible.windows.win_user_right:
+        name: SeDenyInteractiveLogonRight
+        users:
+          - localeero
+        action: remove
+

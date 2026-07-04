@@ -1,0 +1,72 @@
+---
+- name: Check DigiDoc4 installation
+  ansible.windows.win_powershell:
+    script: |
+      $result = [ordered]@{
+        RegistryFound  = $false
+        DisplayName    = $null
+        DisplayVersion = $null
+        ExeFound       = $false
+        ExePath        = $null
+        Installed      = $false
+      }
+
+      $apps = Get-ItemProperty `
+        "HKLM:\Software\Microsoft\Windows\CurrentVersion\Uninstall\*",
+        "HKLM:\Software\WOW6432Node\Microsoft\Windows\CurrentVersion\Uninstall\*" `
+        -ErrorAction SilentlyContinue
+
+      $app = $apps |
+        Where-Object {
+          $_.DisplayName -like "*DigiDoc4*" -or
+          $_.DisplayName -like "*RIA DigiDoc*" -or
+          $_.DisplayName -like "*Open-EID*"
+        } |
+        Select-Object -First 1
+
+      if ($app) {
+        $result.RegistryFound = $true
+        $result.DisplayName = $app.DisplayName
+        $result.DisplayVersion = $app.DisplayVersion
+      }
+
+      $possiblePaths = @(
+        "$env:ProgramFiles\DigiDoc4 Client\qdigidoc4.exe",
+        "${env:ProgramFiles(x86)}\DigiDoc4 Client\qdigidoc4.exe",
+        "$env:ProgramFiles\RIA DigiDoc\qdigidoc4.exe",
+        "${env:ProgramFiles(x86)}\RIA DigiDoc\qdigidoc4.exe"
+      )
+
+      foreach ($path in $possiblePaths) {
+        if (Test-Path $path) {
+          $result.ExeFound = $true
+          $result.ExePath = $path
+          break
+        }
+      }
+
+      $result.Installed = $result.RegistryFound -and $result.ExeFound
+
+      $result | ConvertTo-Json -Compress
+  register: digidoc_check
+  changed_when: false
+
+- name: Save DigiDoc4 status
+  ansible.builtin.set_fact:
+    digidoc_status: "{{ digidoc_check.output[0] | from_json }}"
+
+- name: Set installation requirement
+  ansible.builtin.set_fact:
+    idsoftware_install: >-
+      {{
+        (not digidoc_status.Installed) or
+        ((digidoc_status.DisplayVersion | default('')) != idsoftware_version)
+      }}
+
+- name: Show DigiDoc4 status
+  ansible.builtin.debug:
+    var: digidoc_status
+
+- name: Show install requirement
+  ansible.builtin.debug:
+    var: idsoftware_install

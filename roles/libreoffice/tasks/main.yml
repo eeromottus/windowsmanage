@@ -1,0 +1,25 @@
+---
+- name: Create temporary directory
+  ansible.windows.win_file:
+    path: "{{ libreoffice_temp_dir }}"
+    state: directory
+  when: libreoffice_install
+
+- name: Download LibreOffice
+  ansible.windows.win_get_url:
+    url: "{{ libreoffice_url }}"
+    dest: "{{ libreoffice_temp_dir }}\\LibreOffice.msi"
+  when: libreoffice_install
+
+- name: Install LibreOffice
+  ansible.windows.win_package:
+    path: "{{ libreoffice_temp_dir }}\\LibreOffice.msi"
+    state: present
+    arguments: "/qn /norestart"
+  when: libreoffice_install
+
+- name: Remove temporary files
+  ansible.windows.win_file:
+    path: "{{ libreoffice_temp_dir }}"
+    state: absent
+  when: libreoffice_install

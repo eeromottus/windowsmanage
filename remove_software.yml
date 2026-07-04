@@ -1,0 +1,31 @@
+---
+- name: Install common Windows software
+  hosts: windows
+  gather_facts: false
+
+  vars:
+    software_remove:
+      - "Adobe Acrobat (64-bit)"
+      - "Zoom Workplace (32-bit)"
+
+  tasks:
+    - name: Remove software by display name
+      ansible.windows.win_powershell:
+        script: |
+          $name = "{{ item }}"
+
+          $apps = Get-ItemProperty `
+            "HKLM:\Software\Microsoft\Windows\CurrentVersion\Uninstall\*" ,
+            "HKLM:\Software\WOW6432Node\Microsoft\Windows\CurrentVersion\Uninstall\*" `
+            -ErrorAction SilentlyContinue
+
+          $apps |
+            Where-Object { $_.DisplayName -like "*$name*" } |
+            ForEach-Object {
+              if ($_.PSChildName -match "^\{.*\}$") {
+                Start-Process msiexec.exe `
+                  -ArgumentList "/x $($_.PSChildName) /qn /norestart" `
+                  -Wait
+              }
+            }
+      loop: "{{ software_remove }}"

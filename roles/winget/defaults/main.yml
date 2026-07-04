@@ -1,0 +1,3 @@
+---
+winget_installer_url: "https://aka.ms/getwinget"
+winget_installer: "C:\\install\\winget\\Microsoft.DesktopAppInstaller.msixbundle"

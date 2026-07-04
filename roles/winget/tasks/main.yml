@@ -1,0 +1,16 @@
+---
+- name: Install LibreOffice with WinGet
+  ansible.windows.win_shell: >
+    winget install
+    --id TheDocumentFoundation.LibreOffice
+    --exact
+    --silent
+    --source winget
+    --accept-package-agreements
+    --accept-source-agreements
+  register: libreoffice_winget
+  changed_when: "'Successfully installed' in libreoffice_winget.stdout"
+  failed_when:
+    - libreoffice_winget.rc != 0
+    - "'already installed' not in libreoffice_winget.stdout"
+    - "'No available upgrade found' not in libreoffice_winget.stdout"

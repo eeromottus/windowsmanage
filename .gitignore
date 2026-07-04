@@ -1,0 +1,29 @@
+# ignore all inventory files except the example
+inventory/*
+!inventory/hosts.ini.example
+#ignore all software packaces
+roles/software/files/*
+roles/idsoftware/files/*
+
+# Ansible retry files
+*.retry
+
+# Ansible Vault password
+.vault_pass
+vault_pass.txt
+
+# Python
+__pycache__/
+*.pyc
+
+# VS Code
+.vscode/
+
+# IntelliJ
+.idea/
+
+# macOS
+.DS_Store
+
+# Windows
+Thumbs.db

@@ -1,0 +1,40 @@
+---
+- name: Remove Xbox apps
+  hosts: windows
+  gather_facts: false
+
+  tasks:
+    - name: Remove installed Xbox apps for all users
+      ansible.windows.win_powershell:
+        script: |
+          $apps = @(
+            "Microsoft.XboxApp",
+            "Microsoft.GamingApp",
+            "Microsoft.XboxGamingOverlay",
+            "Microsoft.XboxGameOverlay",
+            "Microsoft.XboxIdentityProvider",
+            "Microsoft.XboxSpeechToTextOverlay"
+          )
+
+          foreach ($app in $apps) {
+            Get-AppxPackage -AllUsers -Name $app |
+              Remove-AppxPackage -AllUsers -ErrorAction SilentlyContinue
+          }
+
+    - name: Remove provisioned Xbox apps for new users
+      ansible.windows.win_powershell:
+        script: |
+          $apps = @(
+            "Microsoft.XboxApp",
+            "Microsoft.GamingApp",
+            "Microsoft.XboxGamingOverlay",
+            "Microsoft.XboxGameOverlay",
+            "Microsoft.XboxIdentityProvider",
+            "Microsoft.XboxSpeechToTextOverlay"
+          )
+
+          foreach ($app in $apps) {
+            Get-AppxProvisionedPackage -Online |
+              Where-Object { $_.DisplayName -eq $app } |
+              Remove-AppxProvisionedPackage -Online -ErrorAction SilentlyContinue
+          }

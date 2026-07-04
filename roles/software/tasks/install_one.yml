@@ -1,0 +1,63 @@
+---
+- name: Check installed software - {{ software.name }}
+  ansible.windows.win_powershell:
+    script: |
+      $app = Get-ItemProperty `
+        "HKLM:\Software\Microsoft\Windows\CurrentVersion\Uninstall\*",
+        "HKLM:\Software\WOW6432Node\Microsoft\Windows\CurrentVersion\Uninstall\*" `
+        -ErrorAction SilentlyContinue |
+        Where-Object { $_.DisplayName -like "{{ software.product }}" } |
+        Select-Object -First 1
+
+      if ($app) {
+        $app.DisplayVersion
+      }
+  register: software_installed
+  changed_when: false
+
+- name: Set install requirement - {{ software.name }}
+  ansible.builtin.set_fact:
+    software_install: >-
+      {{
+        software_installed.output | length == 0 or
+        (
+          software.version is defined and
+          software.version | length > 0 and
+          not ((software_installed.output[0] | trim).startswith(software.version))
+        )
+      }}
+
+- name: Create temp directory - {{ software.name }}
+  ansible.windows.win_file:
+    path: "{{ software_temp_root }}\\{{ software.name }}"
+    state: directory
+  when: software_install
+
+- name: Copy local installer - {{ software.name }}
+  ansible.windows.win_copy:
+    src: "{{ software.local_src }}"
+    dest: "{{ software_temp_root }}\\{{ software.name }}\\{{ software.installer }}"
+  when:
+    - software_install
+    - software.source | default('url') == 'local'
+
+- name: Download installer - {{ software.name }}
+  ansible.windows.win_get_url:
+    url: "{{ software.url }}"
+    dest: "{{ software_temp_root }}\\{{ software.name }}\\{{ software.installer }}"
+  when:
+    - software_install
+    - software.source | default('url') == 'url'    
+
+- name: Install package - {{ software.name }}
+  ansible.windows.win_package:
+    path: "{{ software_temp_root }}\\{{ software.name }}\\{{ software.installer }}"
+    state: present
+    arguments: "{{ software.arguments | default('/qn /norestart') }}"
+  when: software_install
+
+- name: Remove temp files - {{ software.name }}
+  ansible.windows.win_file:
+    path: "{{ software_temp_root }}\\{{ software.name }}"
+    state: absent
+  when: software_install

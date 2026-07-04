@@ -1,0 +1,7 @@
+---
+idsoftware_version: "4.10.0.5399"
+idsoftware_installer_version: "26.4.20.8412"
+
+idsoftware_url: "https://installer.id.ee/media/win/Open-EID-26.4.20.8412.exe"
+
+idsoftware_temp_dir: "C:\\install\\open-eid"

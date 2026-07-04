@@ -1,0 +1,56 @@
+---
+- name: Check DigiDoc after install
+  ansible.windows.win_powershell:
+    script: |
+      $issues = @()
+
+      $apps = Get-ItemProperty `
+        "HKLM:\Software\Microsoft\Windows\CurrentVersion\Uninstall\*",
+        "HKLM:\Software\WOW6432Node\Microsoft\Windows\CurrentVersion\Uninstall\*" `
+        -ErrorAction SilentlyContinue
+
+      $app = $apps |
+        Where-Object {
+          $_.DisplayName -like "*DigiDoc*" -or
+          $_.DisplayName -like "*RIA DigiDoc*" -or
+          $_.DisplayName -like "*Open-EID*"
+        } |
+        Select-Object -First 1
+
+      if (-not $app) {
+        $issues += "Registry entry not found after install"
+      }
+      elseif ($app.DisplayVersion -ne "{{ idsoftware_version }}") {
+        $issues += "Wrong version after install: $($app.DisplayVersion), expected {{ idsoftware_version }}"
+      }
+
+      $shortcuts = Get-ChildItem `
+        "$env:ProgramData\Microsoft\Windows\Start Menu\Programs",
+        "$env:APPDATA\Microsoft\Windows\Start Menu\Programs" `
+        -Filter "*DigiDoc*.lnk" `
+        -Recurse `
+        -ErrorAction SilentlyContinue
+
+      if (-not $shortcuts) {
+        $issues += "DigiDoc Start Menu shortcut not found after install"
+      }
+
+      $issues | ConvertTo-Json -Compress
+  register: digidoc_check_after
+  changed_when: false
+
+- name: Save DigiDoc issues after install
+  ansible.builtin.set_fact:
+    digidoc_issues_after: "{{ digidoc_check_after.output[0] | default('[]') | from_json }}"
+
+- name: Show final DigiDoc problems
+  ansible.builtin.debug:
+    var: digidoc_issues_after
+  when: digidoc_issues_after | length > 0
+
+- name: Verify DigiDoc installation
+  ansible.builtin.assert:
+    that:
+      - digidoc_issues_after | length == 0
+    success_msg: "DigiDoc installation verified."
+    fail_msg: "DigiDoc installation problems: {{ digidoc_issues_after }}"
