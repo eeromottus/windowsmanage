@@ -64,6 +64,13 @@
         installer: "ZoomInstallerFull.msi"
         product: "Zoom Workplace*"
         arguments: "/qn /norestart"
+      - name: Joplin
+        version: "3.6.15"
+        source: url
+        url: "https://github.com/laurent22/joplin/releases/download/v3.6.15/Joplin-Setup-3.6.15.exe"
+        installer: "JoplinSetup.exe"
+        product: "Joplin*"
+        arguments: "/S /allusers"
 
   roles:
     - software
