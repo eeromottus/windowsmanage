@@ -5,7 +5,7 @@
   serial: 1
 
   vars:
-    ssh_admin_user: localeero
+    ssh_admin_user: sshadmin
 
   tasks:
     - name: Remove bad SSH block rule
