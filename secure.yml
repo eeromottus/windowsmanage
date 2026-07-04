@@ -4,6 +4,9 @@
   gather_facts: no
   serial: 1
 
+  vars:
+    ssh_admin_user: sshadmin
+
   tasks:
     - name: Remove bad SSH block rule
       community.windows.win_firewall_rule:
@@ -26,18 +29,18 @@
         enabled: true
         state: present
 
-    - name: Deny local console logon for localeero
+    - name: Deny local console logon for sshadmin
       ansible.windows.win_user_right:
         name: SeDenyInteractiveLogonRight
         users:
-          - localeero
+          - "{{ ssh_admin_user }}"
         action: add
 
-    - name: Deny Remote Desktop logon for localeero
+    - name: Deny Remote Desktop logon for sshadmin
       ansible.windows.win_user_right:
         name: SeDenyRemoteInteractiveLogonRight
         users:
-          - localeero
+          - "{{ ssh_admin_user }}"
         action: add
 
     - name: Disable Remote Assistance

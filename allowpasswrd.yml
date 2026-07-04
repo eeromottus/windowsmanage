@@ -4,12 +4,15 @@
   gather_facts: no
   serial: 1
 
+  vars:
+    ssh_admin_user: sshadmin
+
   tasks:
 
-    - name: Deny local console logon for localeero
+    - name: Deny local console logon for sshadmin
       ansible.windows.win_user_right:
         name: SeDenyInteractiveLogonRight
         users:
-          - localeero
+          - "{{ ssh_admin_user }}"
         action: remove
 
