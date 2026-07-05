@@ -54,7 +54,19 @@
     path: "{{ software_temp_root }}\\{{ software.name }}\\{{ software.installer }}"
     state: present
     arguments: "{{ software.arguments | default('/qn /norestart') }}"
-  when: software_install
+  when: 
+    - software_install
+    - software.source <> "winget"
+
+- name: Install with winget - {{ software.name }}
+  ansible.windows.win_shell: |
+    winget install --id "{{ software.id }}" --exact `
+      --accept-package-agreements `
+      --accept-source-agreements `
+      --disable-interactivity
+  when:
+    - software_install
+    - software.source == "winget"
 
 - name: Remove temp files - {{ software.name }}
   ansible.windows.win_file:
