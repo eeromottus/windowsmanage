@@ -15,7 +15,8 @@
 
       - name: Google Chrome
         version: "150.0.7871.47"
-        source: winget
+        source: url
+        id: Google.Chrome
         url: "https://dl.google.com/dl/chrome/install/googlechromestandaloneenterprise64.msi"
         installer: "GoogleChrome.msi"
         product: "Google Chrome*"
@@ -23,7 +24,8 @@
 
       - name: 7-Zip
         version: "26.02"
-        source: winget
+        source: url
+        id: 7zip.7zip
         url: "https://www.7-zip.org/a/7z2501-x64.msi"
         installer: "7zip.msi"
         product: "7-Zip*"
