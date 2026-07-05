@@ -7,27 +7,30 @@
     software_packages:
       - name: LibreOffice
         version: "26.2.4.2"
+        source: winget
         url: "https://download.documentfoundation.org/libreoffice/stable/26.2.4/win/x86_64/LibreOffice_26.2.4_Win_x86-64.msi"
         installer: "LibreOffice.msi"
         product: "LibreOffice*"
         arguments: "/qn /norestart"
 
       - name: Google Chrome
-        version: ""
+        version: "150.0.7871.47"
+        source: winget
         url: "https://dl.google.com/dl/chrome/install/googlechromestandaloneenterprise64.msi"
         installer: "GoogleChrome.msi"
         product: "Google Chrome*"
         arguments: "/qn /norestart"
 
       - name: 7-Zip
-        version: "25.01"
+        version: "26.02"
+        source: winget
         url: "https://www.7-zip.org/a/7z2501-x64.msi"
         installer: "7zip.msi"
         product: "7-Zip*"
         arguments: "/qn /norestart"
 
       - name: PDF-XChange Editor
-        version: ""
+        version: "11.0.1.0"
         source: local
         installer: "EditorV11.x64.msi"
         local_src: "files/EditorV11.x64.msi"
@@ -51,14 +54,14 @@
         arguments: "/qn /norestart"
 
       - name: Microsoft Teams
-        version: ""
+        version: "1.26.11802"
         source: url
         url: "https://go.microsoft.com/fwlink/?linkid=2243204&clcid=0x409"
         installer: "TeamsBootstrapper.exe"
         product: "Microsoft Teams*"
         arguments: "-p"
       - name: Zoom Workplace
-        version: ""
+        version: "7.1.41345"
         source: url
         url: "https://zoom.us/client/latest/ZoomInstallerFull.msi?archType=x64"
         installer: "ZoomInstallerFull.msi"

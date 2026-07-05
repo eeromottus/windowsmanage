@@ -31,7 +31,9 @@
   ansible.windows.win_file:
     path: "{{ software_temp_root }}\\{{ software.name }}"
     state: directory
-  when: software_install
+  when: 
+    - software_install
+    - software.source != "winget"
 
 - name: Copy local installer - {{ software.name }}
   ansible.windows.win_copy:
@@ -56,7 +58,7 @@
     arguments: "{{ software.arguments | default('/qn /norestart') }}"
   when: 
     - software_install
-    - software.source <> "winget"
+    - software.source != "winget"
 
 - name: Install with winget - {{ software.name }}
   ansible.windows.win_shell: |
@@ -72,4 +74,6 @@
   ansible.windows.win_file:
     path: "{{ software_temp_root }}\\{{ software.name }}"
     state: absent
-  when: software_install
+  when: 
+    - software_install
+    - software.source != "winget"
