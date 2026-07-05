@@ -5,7 +5,7 @@
   serial: 1
 
   vars:
-    ssh_admin_user: sshadmin
+    ssh_admin_user: localeero
 
   tasks:
     - name: Remove bad SSH block rule
@@ -35,6 +35,7 @@
         users:
           - "{{ ssh_admin_user }}"
         action: add
+      when: ansible_host != "100.109.80.96"    
 
     - name: Deny Remote Desktop logon for sshadmin
       ansible.windows.win_user_right:
