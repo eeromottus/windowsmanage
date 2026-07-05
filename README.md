@@ -23,3 +23,9 @@ To generate Tailscale auth key for PowerShell:
 Tailscale Admin Console
 Go to Settings → Keys (or directly open the Keys page).
 Click Generate auth key.
+
+You can add software by downloading the installer to the WSL Ansible role files, installing it directly from the internet, or using Winget.
+
+To remove software, use the Ansible playbook remove_software.yml.
+
+To find the software name, use the PowerShell script name.ps1.
