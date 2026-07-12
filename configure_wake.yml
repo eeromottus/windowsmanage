@@ -5,7 +5,7 @@
   serial: 1
 
   vars:
-    maintenance_start_time: "03:00"
+    maintenance_start_time: "22:00"
     maintenance_duration_minutes: 120
     maintenance_directory: 'C:\ProgramData\AnsibleMaintenance'
     maintenance_script: 'C:\ProgramData\AnsibleMaintenance\keep-awake.ps1'
