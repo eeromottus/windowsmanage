@@ -1,0 +1,56 @@
+---
+- name: Remove Windows maintenance wake configuration
+  hosts: windows
+  gather_facts: false
+  serial: 1
+
+  vars:
+    maintenance_directory: 'C:\ProgramData\AnsibleMaintenance'
+    maintenance_script: 'C:\ProgramData\AnsibleMaintenance\keep-awake.ps1'
+    maintenance_task_name: 'Ansible Maintenance Wake'
+
+  tasks:
+
+    - name: Remove scheduled task
+      ansible.windows.win_shell: |
+        if (Get-ScheduledTask -TaskName "{{ maintenance_task_name }}" -ErrorAction SilentlyContinue) {
+            Unregister-ScheduledTask `
+                -TaskName "{{ maintenance_task_name }}" `
+                -Confirm:$false
+            Write-Output "CHANGED"
+        }
+      register: remove_task
+      changed_when: "'CHANGED' in remove_task.stdout"
+
+    - name: Disable wake timers (AC)
+      ansible.windows.win_shell: |
+        powercfg.exe /SETACVALUEINDEX SCHEME_CURRENT `
+          238c9fa8-0aad-41ed-83f4-97be242c8f20 `
+          bd3b718a-0680-4d9d-8ab2-e1d2b4ac806d `
+          0
+        powercfg.exe /SETACTIVE SCHEME_CURRENT
+      changed_when: false
+
+    - name: Disable wake timers (Battery)
+      ansible.windows.win_shell: |
+        powercfg.exe /SETDCVALUEINDEX SCHEME_CURRENT `
+          238c9fa8-0aad-41ed-83f4-97be242c8f20 `
+          bd3b718a-0680-4d9d-8ab2-e1d2b4ac806d `
+          0
+        powercfg.exe /SETACTIVE SCHEME_CURRENT
+      changed_when: false
+
+    - name: Remove keep-awake script
+      ansible.windows.win_file:
+        path: "{{ maintenance_script }}"
+        state: absent
+
+    - name: Remove maintenance log
+      ansible.windows.win_file:
+        path: "{{ maintenance_directory }}\\maintenance.log"
+        state: absent
+
+    - name: Remove maintenance directory
+      ansible.windows.win_file:
+        path: "{{ maintenance_directory }}"
+        state: absent

@@ -1,0 +1,211 @@
+---
+- name: Configure Windows maintenance wake schedule
+  hosts: windows
+  gather_facts: false
+  serial: 1
+
+  vars:
+    maintenance_start_time: "03:00"
+    maintenance_duration_minutes: 120
+    maintenance_directory: 'C:\ProgramData\AnsibleMaintenance'
+    maintenance_script: 'C:\ProgramData\AnsibleMaintenance\keep-awake.ps1'
+    maintenance_task_name: 'Ansible Maintenance Wake'
+
+  tasks:
+    - name: Create maintenance directory
+      ansible.windows.win_file:
+        path: "{{ maintenance_directory }}"
+        state: directory
+
+    - name: Install maintenance keep-awake script
+      ansible.windows.win_copy:
+        dest: "{{ maintenance_script }}"
+        content: |
+          param(
+              [int]$DurationMinutes = {{ maintenance_duration_minutes }}
+          )
+
+          Add-Type @'
+          using System;
+          using System.Runtime.InteropServices;
+
+          public static class PowerManagement
+          {
+              [DllImport("kernel32.dll", SetLastError = true)]
+              public static extern uint SetThreadExecutionState(uint flags);
+          }
+          '@
+
+          $ES_CONTINUOUS       = [uint32]0x80000000
+          $ES_SYSTEM_REQUIRED  = [uint32]0x00000001
+
+          try {
+              # Prevent Windows from sleeping during the maintenance period.
+              [void][PowerManagement]::SetThreadExecutionState(
+                  $ES_CONTINUOUS -bor $ES_SYSTEM_REQUIRED
+              )
+
+              $logFile = Join-Path $PSScriptRoot "maintenance.log"
+              $startTime = Get-Date
+              $endTime = $startTime.AddMinutes($DurationMinutes)
+
+              "Maintenance wake started: $startTime" |
+                  Out-File -FilePath $logFile -Append -Encoding utf8
+
+              while ((Get-Date) -lt $endTime) {
+                  Start-Sleep -Seconds 60
+              }
+
+              "Maintenance wake finished: $(Get-Date)" |
+                  Out-File -FilePath $logFile -Append -Encoding utf8
+          }
+          finally {
+              # Return power management to normal.
+              [void][PowerManagement]::SetThreadExecutionState(
+                  $ES_CONTINUOUS
+              )
+          }
+
+    - name: Enable wake timers for the current power plan
+      ansible.windows.win_shell: |
+        $subSleep = "238c9fa8-0aad-41ed-83f4-97be242c8f20"
+        $wakeTimer = "bd3b718a-0680-4d9d-8ab2-e1d2b4ac806d"
+
+        powercfg.exe /SETACVALUEINDEX SCHEME_CURRENT $subSleep $wakeTimer 1
+        if ($LASTEXITCODE -ne 0) {
+            throw "Failed to enable AC wake timers"
+        }
+
+        powercfg.exe /SETDCVALUEINDEX SCHEME_CURRENT $subSleep $wakeTimer 1
+        if ($LASTEXITCODE -ne 0) {
+            throw "Failed to enable battery wake timers"
+        }
+
+        powercfg.exe /SETACTIVE SCHEME_CURRENT
+        if ($LASTEXITCODE -ne 0) {
+            throw "Failed to reactivate the current power plan"
+        }
+      changed_when: false
+
+    - name: Create scheduled task that wakes the computer
+      ansible.windows.win_shell: |
+        $ErrorActionPreference = "Stop"
+
+        $taskName = {{ maintenance_task_name | to_json }}
+        $startTime = {{ maintenance_start_time | to_json }}
+        $scriptPath = {{ maintenance_script | to_json }}
+        $duration = {{ maintenance_duration_minutes }}
+
+        $actionArguments = @(
+            "-NoLogo"
+            "-NoProfile"
+            "-NonInteractive"
+            "-ExecutionPolicy"
+            "Bypass"
+            "-File"
+            "`"$scriptPath`""
+            "-DurationMinutes"
+            "$duration"
+        ) -join " "
+
+        $action = New-ScheduledTaskAction `
+            -Execute "PowerShell.exe" `
+            -Argument $actionArguments
+
+        $trigger = New-ScheduledTaskTrigger `
+            -Daily `
+            -At $startTime
+
+        $settings = New-ScheduledTaskSettingsSet `
+            -WakeToRun `
+            -StartWhenAvailable `
+            -DontStopIfGoingOnBatteries `
+            -AllowStartIfOnBatteries `
+            -ExecutionTimeLimit (New-TimeSpan -Minutes ($duration + 30))
+
+        $principal = New-ScheduledTaskPrincipal `
+            -UserId "SYSTEM" `
+            -LogonType ServiceAccount `
+            -RunLevel Highest
+
+        $desiredTask = New-ScheduledTask `
+            -Action $action `
+            -Trigger $trigger `
+            -Settings $settings `
+            -Principal $principal `
+            -Description "Wake the computer and keep it awake for Ansible maintenance."
+
+        $existingTask = Get-ScheduledTask `
+            -TaskName $taskName `
+            -ErrorAction SilentlyContinue
+
+        $registerTask = $true
+
+        if ($existingTask) {
+            $existingXml = Export-ScheduledTask -TaskName $taskName
+
+            $temporaryTaskName = "$taskName-AnsibleComparison"
+
+            Register-ScheduledTask `
+                -TaskName $temporaryTaskName `
+                -InputObject $desiredTask `
+                -Force | Out-Null
+
+            try {
+                $desiredXml = Export-ScheduledTask `
+                    -TaskName $temporaryTaskName
+
+                # Ignore registration-date differences.
+                $existingComparable = $existingXml `
+                    -replace '<Date>.*?</Date>', ''
+
+                $desiredComparable = $desiredXml `
+                    -replace '<Date>.*?</Date>', ''
+
+                if ($existingComparable -eq $desiredComparable) {
+                    $registerTask = $false
+                }
+            }
+            finally {
+                Unregister-ScheduledTask `
+                    -TaskName $temporaryTaskName `
+                    -Confirm:$false `
+                    -ErrorAction SilentlyContinue
+            }
+        }
+
+        if ($registerTask) {
+            Register-ScheduledTask `
+                -TaskName $taskName `
+                -InputObject $desiredTask `
+                -Force | Out-Null
+
+            Write-Output "CHANGED"
+        }
+        else {
+            Write-Output "OK"
+        }
+      register: scheduled_task_result
+      changed_when: "'CHANGED' in scheduled_task_result.stdout"
+
+    - name: Read scheduled task configuration
+      ansible.windows.win_shell: |
+        $task = Get-ScheduledTask `
+            -TaskName {{ maintenance_task_name | to_json }}
+
+        [PSCustomObject]@{
+            TaskName           = $task.TaskName
+            State              = $task.State.ToString()
+            Enabled            = $task.Settings.Enabled
+            WakeToRun          = $task.Settings.WakeToRun
+            StartWhenAvailable = $task.Settings.StartWhenAvailable
+            NextRunTime        = (
+                Get-ScheduledTaskInfo -TaskName $task.TaskName
+            ).NextRunTime
+        } | ConvertTo-Json -Compress
+      register: maintenance_task_status
+      changed_when: false
+
+    - name: Show maintenance task status
+      ansible.builtin.debug:
+        msg: "{{ maintenance_task_status.stdout | from_json }}"
