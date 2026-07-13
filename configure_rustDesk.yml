@@ -1,0 +1,62 @@
+---
+- name: configure RustDesk
+  hosts: windows
+  gather_facts: false
+
+  tasks:
+    - name: Remove existing RustDesk allow rule
+      community.windows.win_firewall_rule:
+        name: "Allow RustDesk from Tailscale"
+        state: absent
+
+    - name: Remove existing RustDesk block rule
+      community.windows.win_firewall_rule:
+        name: "Block RustDesk"
+        state: absent
+
+    - name: Allow RustDesk only from Tailscale
+      community.windows.win_firewall_rule:
+        name: "Allow RustDesk from Tailscale"
+        direction: in
+        action: allow
+        enabled: yes
+        protocol: tcp
+        localport: 21118
+        remoteip: 100.64.0.0/10
+        profiles:
+          - domain
+          - private
+          - public
+        state: present
+
+    - name: Block RustDesk from all other networks
+      community.windows.win_firewall_rule:
+        name: "Block RustDesk"
+        direction: in
+        action: block
+        enabled: yes
+        protocol: tcp
+        localport: 21118
+        remoteip: any
+        profiles:
+          - domain
+          - private
+          - public
+        state: present
+
+    - name: Create RustDesk config directory
+      ansible.windows.win_file:
+        path: 'C:\ProgramData\RustDesk\config'
+        state: directory
+
+    - name: Configure RustDesk
+      ansible.windows.win_copy:
+        dest: 'C:\ProgramData\RustDesk\config\RustDesk2.toml'
+        content: |
+          direct-server=Y
+          direct-access-port=21118
+
+    - name: Restart RustDesk service
+      ansible.windows.win_service:
+        name: RustDesk
+        state: restarted

@@ -1,0 +1,36 @@
+---
+- name: Install RustDesk
+  hosts: windows
+  gather_facts: false
+
+  tasks:
+    - name: Create C:\Temp
+      ansible.windows.win_file:
+        path: C:\Temp
+        state: directory
+    - name: Download RustDesk MSI
+      ansible.windows.win_get_url:
+        url: https://github.com/rustdesk/rustdesk/releases/download/1.4.9/rustdesk-1.4.9-x86_64.msi
+        dest: C:\Temp\rustdesk.msi
+
+    - name: Install RustDesk
+      ansible.windows.win_package:
+        path: C:\Temp\rustdesk.msi
+        state: present
+
+    - name: Create RustDesk config directory
+      ansible.windows.win_file:
+        path: 'C:\ProgramData\RustDesk\config'
+        state: directory
+
+    - name: Configure RustDesk
+      ansible.windows.win_copy:
+        dest: 'C:\ProgramData\RustDesk\config\RustDesk2.toml'
+        content: |
+          direct-server=Y
+          direct-access-port=21118
+
+    - name: Restart RustDesk service
+      ansible.windows.win_service:
+        name: RustDesk
+        state: restarted

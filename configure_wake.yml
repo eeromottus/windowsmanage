@@ -133,7 +133,7 @@
             -Trigger $trigger `
             -Settings $settings `
             -Principal $principal `
-            -Description "Wake the computer and keep it awake for Ansible maintenance."
+            -Description "Wake the computer at 22:00 and prevent automatic sleep until 00:00. The display may turn off."
 
         $existingTask = Get-ScheduledTask `
             -TaskName $taskName `
