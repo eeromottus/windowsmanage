@@ -1,0 +1,30 @@
+---
+- name: Allow localeero to use RDP
+  hosts: windows
+  gather_facts: false
+  serial: 1
+
+  vars:
+    rdp_user: localeero
+
+  tasks:
+    - name: Remove localeero from denied RDP logon right
+      ansible.windows.win_user_right:
+        name: SeDenyRemoteInteractiveLogonRight
+        users:
+          - "{{ rdp_user }}"
+        action: remove
+
+    - name: Grant localeero RDP logon right
+      ansible.windows.win_user_right:
+        name: SeRemoteInteractiveLogonRight
+        users:
+          - "{{ rdp_user }}"
+        action: add
+
+    - name: Add localeero to Remote Desktop Users
+      ansible.windows.win_group_membership:
+        name: "Remote Desktop Users"
+        members:
+          - "{{ rdp_user }}"
+        state: present
