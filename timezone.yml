@@ -1,0 +1,9 @@
+---
+- name: Set Windows time zone to Tallinn
+  hosts: windows
+  gather_facts: false
+
+  tasks:
+    - name: Set Windows time zone
+      ansible.windows.win_command:
+        cmd: tzutil /s "FLE Standard Time"
