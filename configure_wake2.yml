@@ -1,0 +1,69 @@
+---
+- name: Wake Windows computers at 22:00 and keep them awake for two hours
+  hosts: windows
+  gather_facts: false
+
+  tasks:
+    - name: Enable wake timers on AC power
+      ansible.windows.win_command: >
+        powercfg /SETACVALUEINDEX SCHEME_CURRENT SUB_SLEEP RTCWAKE 1
+      changed_when: false
+
+    - name: Disable wake timers on battery
+      ansible.windows.win_command: >
+        powercfg /SETDCVALUEINDEX SCHEME_CURRENT SUB_SLEEP RTCWAKE 0
+      changed_when: false
+
+    - name: Apply power configuration
+      ansible.windows.win_command: >
+        powercfg /SETACTIVE SCHEME_CURRENT
+      changed_when: false
+
+    - name: Create keep-awake PowerShell script
+      ansible.windows.win_copy:
+        dest: C:\ProgramData\Ansible\keep-awake.ps1
+        content: |
+          Add-Type @'
+          using System;
+          using System.Runtime.InteropServices;
+
+          public static class PowerManagement
+          {
+              [DllImport("kernel32.dll")]
+              public static extern uint SetThreadExecutionState(uint esFlags);
+          }
+          '@
+
+          $ES_CONTINUOUS      = [uint32]0x80000000
+          $ES_SYSTEM_REQUIRED = [uint32]0x00000001
+
+          try {
+              [PowerManagement]::SetThreadExecutionState(
+                  $ES_CONTINUOUS -bor $ES_SYSTEM_REQUIRED
+              ) | Out-Null
+
+              Start-Sleep -Seconds 7200
+          }
+          finally {
+              [PowerManagement]::SetThreadExecutionState(
+                  $ES_CONTINUOUS
+              ) | Out-Null
+          }
+
+    - name: Create daily wake and keep-awake task
+      community.windows.win_scheduled_task:
+        name: Daily Wake and Keep Awake
+        description: Wake the computer at 22:00 and prevent sleep for two hours
+        actions:
+          - path: powershell.exe
+            arguments: >-
+              -NoProfile -NonInteractive -ExecutionPolicy Bypass
+              -File "C:\ProgramData\Ansible\keep-awake.ps1"
+        triggers:
+          - type: daily
+            start_boundary: "2026-07-13T22:00:00"
+        username: SYSTEM
+        run_level: highest
+        wake_to_run: true
+        enabled: true
+        state: present

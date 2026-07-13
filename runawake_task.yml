@@ -1,0 +1,21 @@
+---
+- name: Run wake and keep-awake task now
+  hosts: windows
+  gather_facts: false
+
+  tasks:
+    - name: Start scheduled task
+      ansible.windows.win_shell: |
+        Start-ScheduledTask -TaskName "Daily Wake and Keep Awake"
+      changed_when: true
+
+    - name: Check scheduled task state
+      ansible.windows.win_shell: |
+        Get-ScheduledTask -TaskName "Daily Wake and Keep Awake" |
+        Select-Object TaskName, State
+      register: wake_task_state
+      changed_when: false
+
+    - name: Show scheduled task state
+      ansible.builtin.debug:
+        var: wake_task_state.stdout_lines

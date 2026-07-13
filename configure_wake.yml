@@ -1,5 +1,5 @@
 ---
-- name: Configure Windows maintenance wake schedule
+- name: Wake Windows computers at 22:00 and keep them awake for two hours
   hosts: windows
   gather_facts: false
   serial: 1
@@ -9,6 +9,7 @@
     maintenance_duration_minutes: 120
     maintenance_directory: 'C:\ProgramData\AnsibleMaintenance'
     maintenance_script: 'C:\ProgramData\AnsibleMaintenance\keep-awake.ps1'
+    maintenance_log: 'C:\ProgramData\AnsibleMaintenance\maintenance.log'
     maintenance_task_name: 'Ansible Maintenance Wake'
 
   tasks:
@@ -17,7 +18,7 @@
         path: "{{ maintenance_directory }}"
         state: directory
 
-    - name: Install maintenance keep-awake script
+    - name: Install keep-awake PowerShell script
       ansible.windows.win_copy:
         dest: "{{ maintenance_script }}"
         content: |
@@ -25,187 +26,136 @@
               [int]$DurationMinutes = {{ maintenance_duration_minutes }}
           )
 
+          $ErrorActionPreference = 'Stop'
+
           Add-Type @'
           using System;
           using System.Runtime.InteropServices;
 
-          public static class PowerManagement
+          public static class NativePower
           {
               [DllImport("kernel32.dll", SetLastError = true)]
-              public static extern uint SetThreadExecutionState(uint flags);
+              public static extern uint SetThreadExecutionState(uint esFlags);
           }
           '@
 
-          $ES_CONTINUOUS       = [uint32]0x80000000
-          $ES_SYSTEM_REQUIRED  = [uint32]0x00000001
+          $ES_SYSTEM_REQUIRED = [uint32]0x00000001
+          $ES_CONTINUOUS      = [uint32]0x80000000
+          $flags = $ES_CONTINUOUS -bor $ES_SYSTEM_REQUIRED
+
+          $logFile = {{ maintenance_log | to_json }}
+          $startTime = Get-Date
+          $endTime = $startTime.AddMinutes($DurationMinutes)
 
           try {
-              # Prevent Windows from sleeping during the maintenance period.
-              [void][PowerManagement]::SetThreadExecutionState(
-                  $ES_CONTINUOUS -bor $ES_SYSTEM_REQUIRED
-              )
+              $result = [NativePower]::SetThreadExecutionState($flags)
+              if ($result -eq 0) {
+                  throw 'SetThreadExecutionState failed.'
+              }
 
-              $logFile = Join-Path $PSScriptRoot "maintenance.log"
-              $startTime = Get-Date
-              $endTime = $startTime.AddMinutes($DurationMinutes)
-
-              "Maintenance wake started: $startTime" |
+              "START $(Get-Date -Format o); keep awake until $($endTime.ToString('o'))" |
                   Out-File -FilePath $logFile -Append -Encoding utf8
 
               while ((Get-Date) -lt $endTime) {
-                  Start-Sleep -Seconds 60
+                  # Renew the request so the machine cannot return to sleep.
+                  [void][NativePower]::SetThreadExecutionState($flags)
+                  "ALIVE $(Get-Date -Format o)" |
+                      Out-File -FilePath $logFile -Append -Encoding utf8
+                  Start-Sleep -Seconds 300
               }
 
-              "Maintenance wake finished: $(Get-Date)" |
+              "FINISH $(Get-Date -Format o)" |
                   Out-File -FilePath $logFile -Append -Encoding utf8
           }
+          catch {
+              "ERROR $(Get-Date -Format o); $($_.Exception.Message)" |
+                  Out-File -FilePath $logFile -Append -Encoding utf8
+              throw
+          }
           finally {
-              # Return power management to normal.
-              [void][PowerManagement]::SetThreadExecutionState(
-                  $ES_CONTINUOUS
-              )
+              [void][NativePower]::SetThreadExecutionState($ES_CONTINUOUS)
           }
 
-    - name: Enable wake timers for the current power plan
-      ansible.windows.win_shell: |
-        $subSleep = "238c9fa8-0aad-41ed-83f4-97be242c8f20"
-        $wakeTimer = "bd3b718a-0680-4d9d-8ab2-e1d2b4ac806d"
+    - name: Enable wake timers in the active power plan
+      ansible.windows.win_powershell:
+        script: |
+          $ErrorActionPreference = 'Stop'
+          $subSleep = '238c9fa8-0aad-41ed-83f4-97be242c8f20'
+          $wakeTimer = 'bd3b718a-0680-4d9d-8ab2-e1d2b4ac806d'
 
-        powercfg.exe /SETACVALUEINDEX SCHEME_CURRENT $subSleep $wakeTimer 1
-        if ($LASTEXITCODE -ne 0) {
-            throw "Failed to enable AC wake timers"
-        }
+          & powercfg.exe /SETACVALUEINDEX SCHEME_CURRENT $subSleep $wakeTimer 1
+          if ($LASTEXITCODE -ne 0) { throw 'Could not enable AC wake timers.' }
 
-        powercfg.exe /SETDCVALUEINDEX SCHEME_CURRENT $subSleep $wakeTimer 1
-        if ($LASTEXITCODE -ne 0) {
-            throw "Failed to enable battery wake timers"
-        }
+          & powercfg.exe /SETDCVALUEINDEX SCHEME_CURRENT $subSleep $wakeTimer 1
+          if ($LASTEXITCODE -ne 0) { throw 'Could not enable battery wake timers.' }
 
-        powercfg.exe /SETACTIVE SCHEME_CURRENT
-        if ($LASTEXITCODE -ne 0) {
-            throw "Failed to reactivate the current power plan"
-        }
+          & powercfg.exe /SETACTIVE SCHEME_CURRENT
+          if ($LASTEXITCODE -ne 0) { throw 'Could not reactivate the power plan.' }
       changed_when: false
 
-    - name: Create scheduled task that wakes the computer
-      ansible.windows.win_shell: |
-        $ErrorActionPreference = "Stop"
+    - name: Create daily wake and keep-awake task
+      ansible.windows.win_powershell:
+        script: |
+          $ErrorActionPreference = 'Stop'
 
-        $taskName = {{ maintenance_task_name | to_json }}
-        $startTime = {{ maintenance_start_time | to_json }}
-        $scriptPath = {{ maintenance_script | to_json }}
-        $duration = {{ maintenance_duration_minutes }}
+          $taskName = {{ maintenance_task_name | to_json }}
+          $startTime = {{ maintenance_start_time | to_json }}
+          $scriptPath = {{ maintenance_script | to_json }}
+          $duration = {{ maintenance_duration_minutes }}
 
-        $actionArguments = @(
-            "-NoLogo"
-            "-NoProfile"
-            "-NonInteractive"
-            "-ExecutionPolicy"
-            "Bypass"
-            "-File"
-            "`"$scriptPath`""
-            "-DurationMinutes"
-            "$duration"
-        ) -join " "
+          $arguments = "-NoLogo -NoProfile -NonInteractive -ExecutionPolicy Bypass -File `"$scriptPath`" -DurationMinutes $duration"
 
-        $action = New-ScheduledTaskAction `
-            -Execute "PowerShell.exe" `
-            -Argument $actionArguments
+          $action = New-ScheduledTaskAction `
+              -Execute "$env:SystemRoot\System32\WindowsPowerShell\v1.0\powershell.exe" `
+              -Argument $arguments
 
-        $trigger = New-ScheduledTaskTrigger `
-            -Daily `
-            -At $startTime
+          $trigger = New-ScheduledTaskTrigger -Daily -At $startTime
 
-        $settings = New-ScheduledTaskSettingsSet `
-            -WakeToRun `
-            -StartWhenAvailable `
-            -DontStopIfGoingOnBatteries `
-            -AllowStartIfOnBatteries `
-            -ExecutionTimeLimit (New-TimeSpan -Minutes ($duration + 30))
+          $settings = New-ScheduledTaskSettingsSet `
+              -WakeToRun `
+              -StartWhenAvailable `
+              -AllowStartIfOnBatteries `
+              -DontStopIfGoingOnBatteries `
+              -ExecutionTimeLimit (New-TimeSpan -Minutes ($duration + 15)) `
+              -MultipleInstances IgnoreNew
 
-        $principal = New-ScheduledTaskPrincipal `
-            -UserId "SYSTEM" `
-            -LogonType ServiceAccount `
-            -RunLevel Highest
+          $principal = New-ScheduledTaskPrincipal `
+              -UserId 'SYSTEM' `
+              -LogonType ServiceAccount `
+              -RunLevel Highest
 
-        $desiredTask = New-ScheduledTask `
-            -Action $action `
-            -Trigger $trigger `
-            -Settings $settings `
-            -Principal $principal `
-            -Description "Wake the computer at 22:00 and prevent automatic sleep until 00:00. The display may turn off."
+          Register-ScheduledTask `
+              -TaskName $taskName `
+              -Action $action `
+              -Trigger $trigger `
+              -Settings $settings `
+              -Principal $principal `
+              -Description 'Wake at 22:00 and prevent sleep for 120 minutes.' `
+              -Force | Out-Null
+      register: task_registration
+      changed_when: true
 
-        $existingTask = Get-ScheduledTask `
-            -TaskName $taskName `
-            -ErrorAction SilentlyContinue
+    - name: Read task and wake timer status
+      ansible.windows.win_powershell:
+        script: |
+          $taskName = {{ maintenance_task_name | to_json }}
+          $task = Get-ScheduledTask -TaskName $taskName
+          $info = Get-ScheduledTaskInfo -TaskName $taskName
+          $wakeTimers = (& powercfg.exe /waketimers 2>&1 | Out-String).Trim()
 
-        $registerTask = $true
-
-        if ($existingTask) {
-            $existingXml = Export-ScheduledTask -TaskName $taskName
-
-            $temporaryTaskName = "$taskName-AnsibleComparison"
-
-            Register-ScheduledTask `
-                -TaskName $temporaryTaskName `
-                -InputObject $desiredTask `
-                -Force | Out-Null
-
-            try {
-                $desiredXml = Export-ScheduledTask `
-                    -TaskName $temporaryTaskName
-
-                # Ignore registration-date differences.
-                $existingComparable = $existingXml `
-                    -replace '<Date>.*?</Date>', ''
-
-                $desiredComparable = $desiredXml `
-                    -replace '<Date>.*?</Date>', ''
-
-                if ($existingComparable -eq $desiredComparable) {
-                    $registerTask = $false
-                }
-            }
-            finally {
-                Unregister-ScheduledTask `
-                    -TaskName $temporaryTaskName `
-                    -Confirm:$false `
-                    -ErrorAction SilentlyContinue
-            }
-        }
-
-        if ($registerTask) {
-            Register-ScheduledTask `
-                -TaskName $taskName `
-                -InputObject $desiredTask `
-                -Force | Out-Null
-
-            Write-Output "CHANGED"
-        }
-        else {
-            Write-Output "OK"
-        }
-      register: scheduled_task_result
-      changed_when: "'CHANGED' in scheduled_task_result.stdout"
-
-    - name: Read scheduled task configuration
-      ansible.windows.win_shell: |
-        $task = Get-ScheduledTask `
-            -TaskName {{ maintenance_task_name | to_json }}
-
-        [PSCustomObject]@{
-            TaskName           = $task.TaskName
-            State              = $task.State.ToString()
-            Enabled            = $task.Settings.Enabled
-            WakeToRun          = $task.Settings.WakeToRun
-            StartWhenAvailable = $task.Settings.StartWhenAvailable
-            NextRunTime        = (
-                Get-ScheduledTaskInfo -TaskName $task.TaskName
-            ).NextRunTime
-        } | ConvertTo-Json -Compress
-      register: maintenance_task_status
+          [PSCustomObject]@{
+              Computer           = $env:COMPUTERNAME
+              State              = $task.State.ToString()
+              WakeToRun          = $task.Settings.WakeToRun
+              StartWhenAvailable = $task.Settings.StartWhenAvailable
+              NextRunTime        = $info.NextRunTime
+              LastRunTime        = $info.LastRunTime
+              LastTaskResult     = ('0x{0:X8}' -f [uint32]$info.LastTaskResult)
+              WakeTimers         = $wakeTimers
+          } | ConvertTo-Json -Compress
+      register: wake_status
       changed_when: false
 
-    - name: Show maintenance task status
+    - name: Show wake configuration
       ansible.builtin.debug:
-        msg: "{{ maintenance_task_status.stdout | from_json }}"
+        msg: "{{ wake_status.output[0] | from_json }}"
