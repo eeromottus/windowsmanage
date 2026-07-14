@@ -1,0 +1,31 @@
+---
+- name: Test keep-awake scheduled task
+  hosts: windows
+  gather_facts: false
+
+  tasks:
+    - name: Check task state and result
+      ansible.windows.win_shell: |
+        $task = Get-ScheduledTask -TaskName 'Daily Wake and Keep Awake'
+        $info = Get-ScheduledTaskInfo -TaskName 'Daily Wake and Keep Awake'
+
+        [PSCustomObject]@{
+          State          = $task.State
+          LastRunTime    = $info.LastRunTime
+          LastTaskResult = $info.LastTaskResult
+        } | Format-List
+      register: task_result
+      changed_when: false
+
+    - name: Show task result
+      ansible.builtin.debug:
+        var: task_result.stdout_lines
+
+    - name: Check active power requests
+      ansible.windows.win_command: powercfg.exe /requests
+      register: power_requests
+      changed_when: false
+
+    - name: Show active power requests
+      ansible.builtin.debug:
+        var: power_requests.stdout_lines
