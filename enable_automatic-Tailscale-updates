@@ -1,0 +1,25 @@
+---
+- name: Enable automatic Tailscale updates
+  hosts: windows
+  gather_facts: false
+  vars:
+    tailscale_exe: 'C:\Program Files\Tailscale\tailscale.exe'
+
+  tasks:
+    - name: Enable Tailscale automatic updates
+      ansible.windows.win_command:
+        argv:
+          - "{{ tailscale_exe }}"
+          - set
+          - "--auto-update=true"
+      register: tailscale_auto_update
+      changed_when: tailscale_auto_update.rc == 0
+
+    - name: Update Tailscale
+      ansible.windows.win_command:
+        argv:
+          - "{{ tailscale_exe }}"
+          - update
+          - "--yes"
+      async: 600
+      poll: 0
