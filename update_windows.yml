@@ -5,4 +5,4 @@
 
   roles:
     - windows_update
-    - reboot_if_no_user
+    - reboot_if_no_users
