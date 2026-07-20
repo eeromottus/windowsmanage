@@ -1,0 +1,23 @@
+---
+- name: Check for interactive logon sessions
+  ansible.windows.win_shell: |
+    $sessions = quser 2>$null
+
+    if ($LASTEXITCODE -ne 0 -or $sessions.Count -le 1) {
+        Write-Output "NO_USERS"
+    }
+    else {
+        Write-Output "USERS_LOGGED_IN"
+        $sessions
+    }
+  register: login_status
+  changed_when: false
+
+- name: Display logged-on users
+  ansible.builtin.debug:
+    var: login_status.stdout_lines
+
+- name: Reboot Windows if no users are logged on
+  ansible.windows.win_reboot:
+    reboot_timeout: "{{ reboot_timeout }}"
+  when: "'NO_USERS' in login_status.stdout"
