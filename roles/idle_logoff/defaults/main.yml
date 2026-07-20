@@ -1,0 +1,6 @@
+---
+idle_logoff_hours: 24
+
+idle_logoff_script_path: C:\Scripts\LogoffIdleUsers.ps1
+
+idle_logoff_task_name: Logoff Idle Users

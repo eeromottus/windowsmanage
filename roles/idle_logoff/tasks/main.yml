@@ -1,0 +1,38 @@
+---
+- name: Create Scripts directory
+  ansible.windows.win_file:
+    path: C:\Scripts
+    state: directory
+
+- name: Copy idle logoff script
+  ansible.windows.win_copy:
+    src: LogoffIdleUsers.ps1
+    dest: "{{ idle_logoff_script_path }}"
+
+- name: Create scheduled task
+  community.windows.win_scheduled_task:
+    name: "{{ idle_logoff_task_name }}"
+    description: Automatically log off idle users
+    enabled: true
+    username: SYSTEM
+    run_level: highest
+
+    triggers:
+      - type: daily
+        start_boundary: "2026-01-01T00:00:00"
+        repetition:
+          interval: PT1H
+          duration: P1D
+
+    actions:
+      - path: powershell.exe
+        arguments: >
+          -NoProfile
+          -ExecutionPolicy Bypass
+          -File "{{ idle_logoff_script_path }}"
+          -IdleHours {{ idle_logoff_hours }}
+
+    state: present
+
+  tags:
+    - idle_logoff
