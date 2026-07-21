@@ -1,0 +1,16 @@
+---
+- name: configure RustDesk
+  hosts: windows
+  gather_facts: false
+
+  tasks:
+    - name: Remove existing RustDesk allow rule
+      community.windows.win_firewall_rule:
+        name: "Allow RustDesk from Tailscale"
+        state: absent
+
+    - name: Remove existing RustDesk block rule
+      community.windows.win_firewall_rule:
+        name: "Block RustDesk"
+        state: absent
+

@@ -1,0 +1,31 @@
+- name: Install Joplin with winget
+  hosts: windows
+  gather_facts: no
+
+  tasks:
+    - name: Reset winget source
+      ansible.windows.win_command: winget source reset --force
+      changed_when: false
+      failed_when: false
+
+    - name: Update winget source
+      ansible.windows.win_command: winget source update
+      changed_when: false
+      failed_when: false
+
+    - name: Check if Joplin is installed
+      ansible.windows.win_shell: |
+        winget list --id Joplin.Joplin --exact
+      register: joplin_check
+      changed_when: false
+      failed_when: false
+
+    - name: Install Joplin
+      ansible.windows.win_command: >
+        winget install --id Joplin.Joplin
+        --exact
+        --source winget
+        --silent
+        --accept-package-agreements
+        --accept-source-agreements
+      when: joplin_check.rc != 0

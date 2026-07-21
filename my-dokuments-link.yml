@@ -1,0 +1,17 @@
+---
+- name: Add My Documents shortcut to Desktop
+  hosts: windows
+  gather_facts: false
+
+  tasks:
+    - name: Create My Documents shortcut on current user's Desktop
+      ansible.windows.win_powershell:
+        script: |
+          $Desktop = [Environment]::GetFolderPath("Desktop")
+          $Documents = [Environment]::GetFolderPath("MyDocuments")
+
+          $WshShell = New-Object -ComObject WScript.Shell
+          $Shortcut = $WshShell.CreateShortcut("$Desktop\Documents.lnk")
+          $Shortcut.TargetPath = $Documents
+          $Shortcut.IconLocation = "shell32.dll,3"
+          $Shortcut.Save()
