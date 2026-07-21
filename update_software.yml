@@ -14,7 +14,7 @@
         arguments: "/qn /norestart"
 
       - name: Google Chrome
-        version: "150.0.7871.47"
+        version: "150.0.7871.129"
         source: url
         id: Google.Chrome
         url: "https://dl.google.com/dl/chrome/install/googlechromestandaloneenterprise64.msi"
@@ -31,14 +31,14 @@
         product: "7-Zip*"
         arguments: "/qn /norestart"
 
-      - name: SumatraPDf Reader
-        version: "3.6.1-64"
+      - name: SumatraPDF
+        version: "3.6.1"
         source: url
         url: "https://www.sumatrapdfreader.org/dl/rel/3.6.1/SumatraPDF-3.6.1-64-install.exe"
         installer: "SumatraPDF-3.6.1-64-install.exe"
         local_src: ""
-        product: "SumatraPDf Reader*"
-        arguments: "-s -all-user"
+        product: "SumatraPDF"
+        arguments: "-install -silent -all-users"
         
       - name: VLC media player
         version: "3.0.23"
@@ -57,7 +57,7 @@
         arguments: "/qn /norestart"
 
       - name: Microsoft Teams
-        version: "1.26.11802"
+        version: "1.26.16801"
         source: url
         url: "https://go.microsoft.com/fwlink/?linkid=2243204&clcid=0x409"
         installer: "TeamsBootstrapper.exe"
