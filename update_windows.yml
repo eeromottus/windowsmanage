@@ -4,5 +4,9 @@
   gather_facts: no
 
   roles:
-    - windows_update
-    - reboot_if_no_users
+    - role: idle_logoff
+    - role: users_logged_in
+    - role: windows_update
+      when: not users_logged_in
+    - role: reboot_if_no_users
+      when: not users_logged_in 
