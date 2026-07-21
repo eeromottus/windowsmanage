@@ -7,7 +7,7 @@
     software_packages:
       - name: LibreOffice
         version: "26.2.4.2"
-        source: winget
+        source: url
         url: "https://download.documentfoundation.org/libreoffice/stable/26.2.4/win/x86_64/LibreOffice_26.2.4_Win_x86-64.msi"
         installer: "LibreOffice.msi"
         product: "LibreOffice*"
@@ -31,13 +31,14 @@
         product: "7-Zip*"
         arguments: "/qn /norestart"
 
-      - name: PDF-XChange Editor
-        version: "11.0.1.0"
-        source: local
-        installer: "EditorV11.x64.msi"
-        local_src: "files/EditorV11.x64.msi"
-        product: "PDF-XChange Editor*"
-        arguments: "/qn /norestart"
+      - name: SumatraPDf Reader
+        version: "3.6.1-64"
+        source: url
+        url: "https://www.sumatrapdfreader.org/dl/rel/3.6.1/SumatraPDF-3.6.1-64-install.exe"
+        installer: "SumatraPDF-3.6.1-64-install.exe"
+        local_src: ""
+        product: "SumatraPDf Reader*"
+        arguments: "-s -all-user"
         
       - name: VLC media player
         version: "3.0.23"
