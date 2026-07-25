@@ -6,15 +6,15 @@
   vars:
     software_packages:
       - name: LibreOffice
-        version: "26.2.4.2"
+        version: "26.2.5.2"
         source: url
-        url: "https://download.documentfoundation.org/libreoffice/stable/26.2.4/win/x86_64/LibreOffice_26.2.4_Win_x86-64.msi"
+        url: "https://download.documentfoundation.org/libreoffice/stable/26.2.5/win/x86_64/LibreOffice_26.2.5_Win_x86-64.msi"
         installer: "LibreOffice.msi"
         product: "LibreOffice*"
         arguments: "/qn /norestart"
 
       - name: Google Chrome
-        version: "150.0.7871.129"
+        version: "150.0.7871"
         source: url
         id: Google.Chrome
         url: "https://dl.google.com/dl/chrome/install/googlechromestandaloneenterprise64.msi"
@@ -49,22 +49,22 @@
         arguments: "/qn /norestart"
 
       - name: Notepad++
-        version: "8.9.6.4"
+        version: "8.9.7"
         source: url
-        url: "https://github.com/notepad-plus-plus/notepad-plus-plus/releases/download/v8.9.6.4/npp.8.9.6.4.Installer.x64.msi"
-        installer: "NotepadPlusPlus.msi"
+        url: "https://github.com/notepad-plus-plus/notepad-plus-plus/releases/download/v8.9.7/npp.8.9.7.Installer.x64.exe"
+        installer: "npp.8.9.7.Installer.x64.exe"
         product: "Notepad++*"
-        arguments: "/qn /norestart"
+        arguments: "/S"
 
       - name: Microsoft Teams
-        version: "1.26.16801"
+        version: "1.26.168"
         source: url
         url: "https://go.microsoft.com/fwlink/?linkid=2243204&clcid=0x409"
         installer: "TeamsBootstrapper.exe"
         product: "Microsoft Teams*"
         arguments: "-p"
       - name: Zoom Workplace
-        version: "7.1.41345"
+        version: "7.1.43"
         source: url
         url: "https://zoom.us/client/latest/ZoomInstallerFull.msi?archType=x64"
         installer: "ZoomInstallerFull.msi"
