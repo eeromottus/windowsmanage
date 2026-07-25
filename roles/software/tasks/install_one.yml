@@ -23,7 +23,11 @@
         (
           software.version is defined and
           software.version | length > 0 and
-          not ((software_installed.output[0] | trim).startswith(software.version))
+          not (
+            (software_installed.output[0] | trim).startswith(
+              software.version | regex_replace('\*$', '')
+            )
+          )
         )
       }}
 
