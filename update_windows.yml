@@ -1,6 +1,30 @@
 ---
-- name: Update Windows computers
+- name: Detect online Windows computers quietly
   hosts: windows
+  gather_facts: false
+
+  tasks:
+    - name: Check whether SSH port is reachable
+      ansible.builtin.wait_for:
+        host: "{{ ansible_host | default(inventory_hostname) }}"
+        port: "{{ ansible_port | default(22) }}"
+        timeout: 3
+        connect_timeout: 2
+        state: started
+      delegate_to: localhost
+      register: port_check
+      failed_when: false
+      changed_when: false
+
+    - name: Add reachable computers to active_windows
+      ansible.builtin.add_host:
+        name: "{{ inventory_hostname }}"
+        groups: active_windows
+      when: port_check is succeeded
+
+
+- name: Update Windows computers
+  hosts: active_windows
   gather_facts: no
 
   roles:
