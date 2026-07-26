@@ -1,0 +1,12 @@
+---
+rustdesk_version: "1.4.9"
+
+rustdesk_installer_path: 'C:\Temp\rustdesk-1.4.9-x86_64.msi'
+
+rustdesk_install_arguments:
+  - "/qn"
+  - "/norestart"
+
+rustdesk_exe_paths:
+  - 'C:\Program Files\RustDesk\rustdesk.exe'
+  - 'C:\Program Files (x86)\RustDesk\rustdesk.exe'

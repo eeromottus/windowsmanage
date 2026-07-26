@@ -1,38 +1,118 @@
 ---
-- name: Install RustDesk
-  hosts: windows
-  gather_facts: false
+- name: Check installed RustDesk version
+  ansible.windows.win_powershell:
+    script: |
+      $uninstallPaths = @(
+          "HKLM:\Software\Microsoft\Windows\CurrentVersion\Uninstall\*",
+          "HKLM:\Software\WOW6432Node\Microsoft\Windows\CurrentVersion\Uninstall\*"
+      )
 
-  tasks:
-    - name: Create C:\Temp
-      ansible.windows.win_file:
-        path: C:\Temp
-        state: directory
-    - name: Download RustDesk MSI
-      ansible.windows.win_get_url:
-        url: https://github.com/rustdesk/rustdesk/releases/download/1.4.9/rustdesk-1.4.9-x86_64.msi
-        dest: C:\Temp\rustdesk.msi
+      $app = Get-ItemProperty $uninstallPaths -ErrorAction SilentlyContinue |
+          Where-Object {
+              $_.DisplayName -like "RustDesk*"
+          } |
+          Select-Object -First 1
 
-    - name: Install RustDesk
-      ansible.windows.win_package:
-        path: C:\Temp\rustdesk.msi
-        state: present
+      if ($app -and $app.DisplayVersion) {
+          $app.DisplayVersion
+          return
+      }
 
-    - name: Create RustDesk config directory
-      ansible.windows.win_file:
-        path: 'C:\ProgramData\RustDesk\config'
-        state: directory
+      $exePaths = @(
+      {% for exe_path in rustdesk_exe_paths %}
+          "{{ exe_path }}"{% if not loop.last %},{% endif %}
 
-    - name: Configure RustDesk
-      ansible.windows.win_copy:
-        dest: 'C:\ProgramData\RustDesk\config\RustDesk2.toml'
-        content: |
-          direct-server=Y
-          direct-access-port=21118
-          rustdesk_whitelist:
-            - "100.109.80.96"
+      {% endfor %}
+      )
 
-    - name: Restart RustDesk service
-      ansible.windows.win_service:
-        name: RustDesk
-        state: restarted
+      foreach ($exePath in $exePaths) {
+          if (Test-Path $exePath) {
+              $version = (Get-Item $exePath).VersionInfo.ProductVersion
+
+              if (-not $version) {
+                  $version = (Get-Item $exePath).VersionInfo.FileVersion
+              }
+
+              if ($version) {
+                  $version
+                  return
+              }
+          }
+      }
+  register: rustdesk_version_check
+  changed_when: false
+
+- name: Set installed RustDesk version
+  ansible.builtin.set_fact:
+    rustdesk_installed_version: >-
+      {{
+        rustdesk_version_check.output[0]
+        | default('')
+        | trim
+      }}
+
+- name: Determine whether RustDesk installation is required
+  ansible.builtin.set_fact:
+    rustdesk_install_required: >-
+      {{
+        rustdesk_installed_version | length == 0
+        or
+        not rustdesk_installed_version.startswith(rustdesk_version)
+      }}
+
+- name: Show RustDesk status
+  ansible.builtin.debug:
+    msg:
+      - >-
+        Installed version:
+        {{ rustdesk_installed_version | default('not installed', true) }}
+      - "Required version: {{ rustdesk_version }}"
+      - "Install required: {{ rustdesk_install_required }}"
+- name: Download RustDesk MSI
+  ansible.windows.win_get_url:
+    url: "https://github.com/rustdesk/rustdesk/releases/download/{{ rustdesk_version }}/rustdesk-{{ rustdesk_version }}-x86_64.msi"
+    dest: "{{ rustdesk_installer_path }}"
+    force: false
+  when: rustdesk_install_required | bool
+
+- name: Install or update RustDesk MSI
+  ansible.windows.win_package:
+    path: "{{ rustdesk_installer_path }}"
+    arguments: "{{ rustdesk_install_arguments }}"
+    state: present
+  register: rustdesk_install_result
+  when: rustdesk_install_required | bool
+
+- name: Create RustDesk configuration directory
+  ansible.windows.win_file:
+    path: 'C:\ProgramData\RustDesk\config'
+    state: directory
+  when: rustdesk_install_required | bool
+
+- name: Configure RustDesk
+  ansible.windows.win_copy:
+    dest: 'C:\ProgramData\RustDesk\config\RustDesk2.toml'
+    content: |
+      [options]
+      direct-server = 'Y'
+      direct-access-port = '21118'
+      whitelist = '100.109.80.96'
+  when: rustdesk_install_required | bool
+
+- name: Wait for RustDesk service
+  ansible.windows.win_service_info:
+    name: RustDesk
+  register: rustdesk_service
+  retries: 10
+  delay: 2
+  until: rustdesk_service.services | length > 0
+  when: rustdesk_install_required | bool
+
+- name: Restart RustDesk service
+  ansible.windows.win_service:
+    name: RustDesk
+    start_mode: auto
+    state: restarted
+  when:
+    - rustdesk_install_required | bool
+    - rustdesk_service.services | length > 0
