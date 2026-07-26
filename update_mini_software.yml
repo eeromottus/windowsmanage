@@ -1,6 +1,6 @@
 ---
 - name: Detect online Windows computers quietly
-  hosts: windows
+  hosts: windows_mini
   gather_facts: false
 
   tasks:
