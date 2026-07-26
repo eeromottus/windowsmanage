@@ -8,8 +8,7 @@
       - "Adobe Acrobat (64-bit)"
       - "Zoom Workplace (32-bit)"
       - "PDF-XChange Editor"
-      - "*OpenOffice*" 
-
+      - "*OpenOffice*"
   tasks:
     - name: Remove software by display name
       ansible.windows.win_powershell:
