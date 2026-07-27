@@ -1,4 +1,8 @@
 ---
+- name: Find reachable Windows computers
+  hosts: windows
+  gather_facts: false
+
   tasks:
     - name: Check whether SSH port is reachable
       ansible.builtin.wait_for:
@@ -16,11 +20,13 @@
       ansible.builtin.add_host:
         name: "{{ inventory_hostname }}"
         groups: active_windows
-      when: port_check is succeeded
+      when: port_check.msg is not defined
+
 
 - name: Install common Windows software
   hosts: active_windows
   gather_facts: false
+
 
 - name: Remove common Windows software
   hosts: active_windows
@@ -32,6 +38,7 @@
       - "Zoom Workplace (32-bit)"
       - "PDF-XChange Editor"
       - "*OpenOffice*"
+
   tasks:
     - name: Remove software by display name
       ansible.windows.win_powershell:
