@@ -23,12 +23,8 @@
         (
           software.version is defined and
           software.version | length > 0 and
-          not (
-            (software_installed.output[0] | trim).startswith(
-              software.version | regex_replace('\*$', '')
-            )
-          )
-        )
+          not ((software_installed.output[0] | trim).startswith(software.version))
+       )
       }}
 
 - name: Create temp directory - {{ software.name }}
@@ -49,7 +45,7 @@
 
 - name: Download installer - {{ software.name }}
   ansible.windows.win_get_url:
-    url: "{{ software.url }}"
+    url: "http://docker01/{{ software.name }}/{{ software.installer }}"
     dest: "{{ software_temp_root }}\\{{ software.name }}\\{{ software.installer }}"
   when:
     - software_install
