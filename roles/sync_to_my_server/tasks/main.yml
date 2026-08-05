@@ -1,0 +1,6 @@
+- name: Synchronize software repository to docker01
+  ansible.builtin.command: >
+    rsync -av --delete
+    --chmod=Du=rwx,Dgo=rx,Fu=rw,Fgo=r
+    /mnt/c/files/
+    eero@docker01:/srv/software/
