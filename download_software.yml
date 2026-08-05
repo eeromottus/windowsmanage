@@ -1,0 +1,82 @@
+---
+- name: Install common Windows software
+  hosts: localhost
+  gather_facts: false
+
+  vars:
+    software_packages:
+      - name: LibreOffice
+        version: "26.2.5.2"
+        source: url
+        source_url: "https://download.documentfoundation.org/libreoffice/stable/26.2.5/win/x86_64/LibreOffice_26.2.5_Win_x86-64.msi"
+        installer: "LibreOffice.msi"
+        product: "LibreOffice*"
+        arguments: "/qn /norestart"
+
+      - name: Google Chrome
+        version: "150.0.7871"
+        source: url
+        id: Google.Chrome
+        source_url: "https://dl.google.com/dl/chrome/install/googlechromestandaloneenterprise64.msi"
+        installer: "GoogleChrome.msi"
+        product: "Google Chrome*"
+        arguments: "/qn /norestart"
+
+      - name: 7-Zip
+        version: "26.02"
+        source: url
+        id: 7zip.7zip
+        source_url: "https://www.7-zip.org/a/7z2501-x64.msi"
+        installer: "7zip.msi"
+        product: "7-Zip*"
+        arguments: "/qn /norestart"
+
+      - name: SumatraPDF
+        version: "3.6.1"
+        source: url
+        source_url: "https://www.sumatrapdfreader.org/dl/rel/3.6.1/SumatraPDF-3.6.1-64-install.exe"
+        installer: "SumatraPDF-3.6.1-64-install.exe"
+        local_src: ""
+        product: "SumatraPDF"
+        arguments: "-install -silent -all-users"
+        
+      - name: VLC media player
+        version: "3.0.23"
+        source: url
+        source_url: "https://get.videolan.org/vlc/last/win64/vlc-3.0.23-win64.msi"
+        installer: "vlc.msi"
+        product: "VLC media player*"
+        arguments: "/qn /norestart"
+
+      - name: Notepad++
+        version: "8.9.7"
+        source: url
+        source_url: "https://github.com/notepad-plus-plus/notepad-plus-plus/releases/download/v8.9.7/npp.8.9.7.Installer.x64.exe"
+        installer: "npp.8.9.7.Installer.x64.exe"
+        product: "Notepad++*"
+        arguments: "/S"
+
+      - name: Microsoft Teams
+        version: "1.26.168"
+        source: url
+        source_url: "https://go.microsoft.com/fwlink/?linkid=2243204&clcid=0x409"
+        installer: "TeamsBootstrapper.exe"
+        product: "Microsoft Teams*"
+        arguments: "-p"
+      - name: Zoom Workplace
+        version: "7.1.43"
+        source: url
+        source_url: "https://zoom.us/client/latest/ZoomInstallerFull.msi?archType=x64"
+        installer: "ZoomInstallerFull.msi"
+        product: "Zoom Workplace*"
+        arguments: "/qn /norestart"
+      - name: Joplin
+        version: "3.6.15"
+        source: url
+        source_url: "https://github.com/laurent22/joplin/releases/download/v3.6.15/Joplin-Setup-3.6.15.exe"
+        installer: "JoplinSetup.exe"
+        product: "Joplin*"
+        arguments: "/S /allusers"
+
+  roles:
+    - download

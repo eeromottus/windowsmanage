@@ -1,0 +1,65 @@
+---
+- name: Create main software directory
+  ansible.builtin.file:
+    path: /mnt/c/files
+    state: directory
+    mode: "0755"
+
+- name: Create package directories
+  ansible.builtin.file:
+    path: "/mnt/c/files/{{ item.name }}"
+    state: directory
+    mode: "0755"
+  loop: "{{ software_packages }}"
+  loop_control:
+    label: "{{ item.name }}"
+
+- name: Check whether installer already exists
+  ansible.builtin.stat:
+    path: "/mnt/c/files/{{ item.name }}/{{ item.installer }}"
+  loop: "{{ software_packages }}"
+  loop_control:
+    label: "{{ item.name }}"
+  register: installer_files
+
+- name: Download installers with curl
+  ansible.builtin.command:
+    argv:
+      - curl
+      - --fail
+      - --location
+      - --show-error
+      - --silent
+      - --retry
+      - "3"
+      - --retry-delay
+      - "5"
+      - --connect-timeout
+      - "30"
+      - --output
+      - "/mnt/c/files/{{ item.item.name }}/{{ item.item.installer }}"
+      - "{{ item.item.source_url }}"
+  loop: "{{ installer_files.results }}"
+  loop_control:
+    label: "{{ item.item.name }}"
+  when:
+    - item.item.source | default('url') == 'url'
+    - item.item.source_url is defined
+    - item.item.source_url | length > 0
+    - not item.stat.exists
+  register: download_results
+
+- name: Set installer permissions
+  ansible.builtin.file:
+    path: "/mnt/c/files/{{ item.name }}/{{ item.installer }}"
+    mode: "0644"
+  loop: "{{ software_packages }}"
+  loop_control:
+    label: "{{ item.name }}"
+
+- name: Show downloaded installers
+  ansible.builtin.debug:
+    msg: "/mnt/c/files/{{ item.name }}/{{ item.installer }}"
+  loop: "{{ software_packages }}"
+  loop_control:
+    label: "{{ item.name }}"
