@@ -8,15 +8,18 @@
       ansible.windows.win_user_right:
         name: SeDenyInteractiveLogonRight
         users:
-          - ".\localeero"
+          - "localeero"
         action: remove
 
     - name: Remove localeero from Deny RDP logon
       ansible.windows.win_user_right:
         name: SeDenyRemoteInteractiveLogonRight
         users:
-          - ".\localeero"
+          - "localeero"
         action: remove
+      tags:
+        - never
+        - RDP  
 
     - name: Force Group Policy refresh
       ansible.windows.win_command: gpupdate /force

@@ -34,10 +34,10 @@
 
     - name: Create two-hour keep-awake PowerShell script
       ansible.windows.win_copy:
-        dest: "{{ script_path }}"
+        dest: C:\ProgramData\Ansible\keep-awake.ps1
         content: |
           param(
-              [int]$DurationMinutes = {{ keep_awake_minutes }}
+              [int]$DurationMinutes = 120
           )
 
           $ErrorActionPreference = 'Stop'
@@ -48,14 +48,14 @@
 
           public static class PowerManagement
           {
-              [DllImport("kernel32.dll")]
+              [DllImport("kernel32.dll", SetLastError = true)]
               public static extern uint SetThreadExecutionState(uint esFlags);
           }
           '@
 
-          $ES_CONTINUOUS      = [uint32]0x80000000
-          $ES_SYSTEM_REQUIRED = [uint32]0x00000001
-          $keepAwakeFlags     = $ES_CONTINUOUS -bor $ES_SYSTEM_REQUIRED
+          [uint32]$ES_CONTINUOUS      = 2147483648
+          [uint32]$ES_SYSTEM_REQUIRED = 1
+          [uint32]$keepAwakeFlags     = $ES_CONTINUOUS -bor $ES_SYSTEM_REQUIRED
 
           try {
               $result = [PowerManagement]::SetThreadExecutionState(
@@ -63,7 +63,7 @@
               )
 
               if ($result -eq 0) {
-                  throw 'SetThreadExecutionState failed.'
+                  throw "SetThreadExecutionState failed."
               }
 
               Start-Sleep -Seconds ($DurationMinutes * 60)
@@ -73,6 +73,7 @@
                   $ES_CONTINUOUS
               )
           }
+
 
     - name: Create or update daily wake and keep-awake task
       ansible.windows.win_shell: |

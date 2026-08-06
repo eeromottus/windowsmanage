@@ -15,7 +15,7 @@
       register: tailscale_auto_update
       changed_when: tailscale_auto_update.rc == 0
       tags:
-	- set 
+        - set 
 
     - name: Update Tailscale
       ansible.windows.win_command:

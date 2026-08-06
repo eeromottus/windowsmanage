@@ -1,62 +1,147 @@
 ---
-- name: configure RustDesk
+- name: Configure RustDesk for one permitted Tailscale client
   hosts: windows
   gather_facts: false
 
+  vars:
+    rustdesk_allowed_ip: "100.109.80.96"
+    rustdesk_direct_port: 21118
+    rustdesk_config_dir: >-
+      C:\Windows\ServiceProfiles\LocalService\AppData\Roaming\RustDesk\config
+    rustdesk_config_file: "{{ rustdesk_config_dir }}\\RustDesk2.toml"
+
   tasks:
-    - name: Remove existing RustDesk allow rule
-      community.windows.win_firewall_rule:
-        name: "Allow RustDesk from Tailscale"
-        state: absent
+    - name: Check that RustDesk service exists
+      ansible.windows.win_service_info:
+        name: RustDesk
+      register: rustdesk_service
 
-    - name: Remove existing RustDesk block rule
-      community.windows.win_firewall_rule:
-        name: "Block RustDesk"
-        state: absent
+    - name: Stop if RustDesk service is not installed
+      ansible.builtin.fail:
+        msg: "RustDesk service is not installed on this computer."
+      when: not rustdesk_service.exists
 
-    - name: Allow RustDesk only from Tailscale
-      community.windows.win_firewall_rule:
-        name: "Allow RustDesk from Tailscale"
-        direction: in
-        action: allow
-        enabled: yes
-        protocol: tcp
-        localport: 21118
-        remoteip: 100.64.0.0/10
-        profiles:
-          - domain
-          - private
-          - public
-        state: present
-
-    - name: Block RustDesk from all other networks
-      community.windows.win_firewall_rule:
-        name: "Block RustDesk"
-        direction: in
-        action: block
-        enabled: yes
-        protocol: tcp
-        localport: 21118
-        remoteip: any
-        profiles:
-          - domain
-          - private
-          - public
-        state: present
-
-    - name: Create RustDesk config directory
-      ansible.windows.win_file:
-        path: 'C:\ProgramData\RustDesk\config'
-        state: directory
-
-    - name: Configure RustDesk
-      ansible.windows.win_copy:
-        dest: 'C:\ProgramData\RustDesk\config\RustDesk2.toml'
-        content: |
-          direct-server=Y
-          direct-access-port=21118
-
-    - name: Restart RustDesk service
+    - name: Stop RustDesk service before changing configuration
       ansible.windows.win_service:
         name: RustDesk
-        state: restarted
+        state: stopped
+
+    - name: Create RustDesk service configuration directory
+      ansible.windows.win_file:
+        path: "{{ rustdesk_config_dir }}"
+        state: directory
+
+    - name: Enable RustDesk Direct IP Access
+      ansible.windows.win_powershell:
+        script: |
+          $ConfigFile = "{{ rustdesk_config_file }}"
+          $ConfigDir  = Split-Path -Parent $ConfigFile
+
+          New-Item -Path $ConfigDir -ItemType Directory -Force | Out-Null
+
+          if (Test-Path $ConfigFile) {
+              $Content = Get-Content -Path $ConfigFile -Raw
+          }
+          else {
+              $Content = ""
+          }
+
+          if ($Content -notmatch '(?m)^\[options\]\s*$') {
+              if ($Content -and -not $Content.EndsWith("`n")) {
+                  $Content += "`r`n"
+              }
+
+              $Content += @"
+
+          [options]
+          direct-server = 'Y'
+          direct-access-port = '{{ rustdesk_direct_port }}'
+          "@
+          }
+          else {
+              if ($Content -match "(?m)^direct-server\s*=") {
+                  $Content = $Content -replace `
+                      "(?m)^direct-server\s*=.*$", `
+                      "direct-server = 'Y'"
+              }
+              else {
+                  $Content = $Content -replace `
+                      "(?m)^\[options\]\s*$", `
+                      "[options]`r`ndirect-server = 'Y'"
+              }
+
+              if ($Content -match "(?m)^direct-access-port\s*=") {
+                  $Content = $Content -replace `
+                      "(?m)^direct-access-port\s*=.*$", `
+                      "direct-access-port = '{{ rustdesk_direct_port }}'"
+              }
+              else {
+                  $Content = $Content -replace `
+                      "(?m)^\[options\]\s*$", `
+                      "[options]`r`ndirect-access-port = '{{ rustdesk_direct_port }}'"
+              }
+          }
+
+          Set-Content `
+              -Path $ConfigFile `
+              -Value $Content `
+              -Encoding UTF8
+
+    - name: Remove existing RustDesk direct-access firewall rule
+      community.windows.win_firewall_rule:
+        name: RustDesk Direct IP Access
+        state: absent
+
+    - name: Remove RustDesk executable firewall rules
+      ansible.windows.win_powershell:
+        script: |
+          Get-NetFirewallRule -ErrorAction SilentlyContinue |
+              Where-Object {
+                  $_.DisplayName -like "*RustDesk*" -and
+                  $_.DisplayName -ne "RustDesk Direct IP Access"
+              } |
+              Remove-NetFirewallRule
+
+    - name: Allow RustDesk only from management computer
+      community.windows.win_firewall_rule:
+        name: RustDesk Direct IP Access
+        description: >-
+          Allow RustDesk direct access only from
+          {{ rustdesk_allowed_ip }}
+        direction: in
+        action: allow
+        protocol: tcp
+        localport: "{{ rustdesk_direct_port }}"
+        remoteip: "{{ rustdesk_allowed_ip }}"
+        profiles:
+          - domain
+          - private
+          - public
+        enabled: true
+        state: present
+
+    - name: Start RustDesk service
+      ansible.windows.win_service:
+        name: RustDesk
+        start_mode: auto
+        state: started
+
+    - name: Verify RustDesk port
+      ansible.windows.win_powershell:
+        script: |
+          $Listener = Get-NetTCPConnection `
+              -LocalPort {{ rustdesk_direct_port }} `
+              -State Listen `
+              -ErrorAction SilentlyContinue
+
+          if (-not $Listener) {
+              throw "RustDesk is not listening on port {{ rustdesk_direct_port }}"
+          }
+
+          $Listener |
+              Select-Object LocalAddress, LocalPort, State
+      register: rustdesk_listener
+
+    - name: Display listener information
+      ansible.builtin.debug:
+        var: rustdesk_listener.output

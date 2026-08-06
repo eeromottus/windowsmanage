@@ -29,6 +29,8 @@
         content: |
           direct-server=Y
           direct-access-port=21118
+          rustdesk_whitelist:
+            - "100.109.80.96"
 
     - name: Restart RustDesk service
       ansible.windows.win_service:
