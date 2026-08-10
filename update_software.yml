@@ -31,13 +31,12 @@
       - name: LibreOffice
         version: "26.2.5.2"
         source: url
-        source_url: "https://download.documentfoundation.org/libreoffice/stable/26.2.5/win/x86_64/LibreOffice_26.2.5_Win_x86-64.msi"
         installer: "LibreOffice.msi"
         product: "LibreOffice*"
         arguments: "/qn /norestart"
 
       - name: Google Chrome
-        version: "150.0.7871"
+        version: "151.0.7922"
         source: url
         id: Google.Chrome
         source_url: "https://dl.google.com/dl/chrome/install/googlechromestandaloneenterprise64.msi"
@@ -86,6 +85,7 @@
         installer: "TeamsBootstrapper.exe"
         product: "Microsoft Teams*"
         arguments: "-p"
+
       - name: Zoom Workplace
         version: "7.1.43"
         source: url
@@ -93,6 +93,7 @@
         installer: "ZoomInstallerFull.msi"
         product: "Zoom Workplace*"
         arguments: "/qn /norestart"
+
       - name: Joplin
         version: "3.6.15"
         source: url
