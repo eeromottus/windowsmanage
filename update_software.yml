@@ -29,14 +29,14 @@
   vars:
     software_packages:
       - name: LibreOffice
-        version: "26.2.5.2"
+        version: "26.2.8.0"
         source: url
         installer: "LibreOffice.msi"
         product: "LibreOffice*"
         arguments: "/qn /norestart"
 
       - name: Google Chrome
-        version: "151.0.7922"
+        version: "151.0.7871"
         source: url
         id: Google.Chrome
         source_url: "https://dl.google.com/dl/chrome/install/googlechromestandaloneenterprise64.msi"
@@ -71,15 +71,15 @@
         arguments: "/qn /norestart"
 
       - name: Notepad++
-        version: "8.9.7"
+        version: "8.9.8"
         source: url
         source_url: "https://github.com/notepad-plus-plus/notepad-plus-plus/releases/download/v8.9.7/npp.8.9.7.Installer.x64.exe"
-        installer: "npp.8.9.7.Installer.x64.exe"
+        installer: "npp.8.9.8.Installer.x64.exe"
         product: "Notepad++*"
         arguments: "/S"
 
       - name: Microsoft Teams
-        version: "1.26.168"
+        version: "1.25.168"
         source: url
         source_url: "https://go.microsoft.com/fwlink/?linkid=2243204&clcid=0x409"
         installer: "TeamsBootstrapper.exe"
@@ -87,7 +87,7 @@
         arguments: "-p"
 
       - name: Zoom Workplace
-        version: "7.1.43"
+        version: "7.1.42"
         source: url
         source_url: "https://zoom.us/client/latest/ZoomInstallerFull.msi?archType=x64"
         installer: "ZoomInstallerFull.msi"
@@ -95,9 +95,9 @@
         arguments: "/qn /norestart"
 
       - name: Joplin
-        version: "3.6.15"
+        version: "3.6.16"
         source: url
-        source_url: "https://github.com/laurent22/joplin/releases/download/v3.6.15/Joplin-Setup-3.6.15.exe"
+        source_url: "https://github.com/laurent22/joplin/releases/download/v3.6.16/Joplin-Setup-3.6.16.exe"
         installer: "JoplinSetup.exe"
         product: "Joplin*"
         arguments: "/S /allusers"
