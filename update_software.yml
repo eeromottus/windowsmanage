@@ -29,14 +29,14 @@
   vars:
     software_packages:
       - name: LibreOffice
-        version: "26.2.8.0"
+        version: "26.2.8.0.3"
         source: url
         installer: "LibreOffice.msi"
         product: "LibreOffice*"
         arguments: "/qn /norestart"
 
       - name: Google Chrome
-        version: "151.0.7871"
+        version: "152.0.7977.65"
         source: url
         id: Google.Chrome
         source_url: "https://dl.google.com/dl/chrome/install/googlechromestandaloneenterprise64.msi"
@@ -79,7 +79,7 @@
         arguments: "/S"
 
       - name: Microsoft Teams
-        version: "1.25.168"
+        version: "1.26.18801"
         source: url
         source_url: "https://go.microsoft.com/fwlink/?linkid=2243204&clcid=0x409"
         installer: "TeamsBootstrapper.exe"
@@ -87,7 +87,7 @@
         arguments: "-p"
 
       - name: Zoom Workplace
-        version: "7.1.42"
+        version: "7.1.46825"
         source: url
         source_url: "https://zoom.us/client/latest/ZoomInstallerFull.msi?archType=x64"
         installer: "ZoomInstallerFull.msi"
