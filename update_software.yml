@@ -29,20 +29,12 @@
   vars:
     software_packages:
       - name: LibreOffice
-        version: "26.2.8.0.3"
+        version: "26.8.0.3"
         source: url
         installer: "LibreOffice.msi"
         product: "LibreOffice*"
         arguments: "/qn /norestart"
 
-      - name: Google Chrome
-        version: "152.0.7977.65"
-        source: url
-        id: Google.Chrome
-        source_url: "https://dl.google.com/dl/chrome/install/googlechromestandaloneenterprise64.msi"
-        installer: "GoogleChrome.msi"
-        product: "Google Chrome*"
-        arguments: "/qn /norestart"
 
       - name: 7-Zip
         version: "26.02"

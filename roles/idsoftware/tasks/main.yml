@@ -29,9 +29,10 @@
   ansible.builtin.set_fact:
     idsoftware_install: >-
       {{
-        idsoftware_installed.output | length == 0 or
-        (idsoftware_installed.output[0] | trim) != idsoftware_version
+        (idsoftware_installed.output | length == 0) or
+        ((idsoftware_installed.output[0] | trim) != (open_eid_version | string | trim))
       }}
+
 - name: Download Open-EID installer
   ansible.windows.win_get_url:
     url: "{{ idsoftware_url }}"
