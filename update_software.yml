@@ -35,6 +35,16 @@
         product: "LibreOffice*"
         arguments: "/qn /norestart"
 
+      - name: Google Chrome
+        version: "152.0.7977.76"
+        source: url
+        id: Google.Chrome
+        installer: "GoogleChrome.msi"
+        product: "Google Chrome*"
+        detect_file: "C:\\Program Files\\Google\\Chrome\\Application\\chrome.exe"
+        detect_appx: ""
+        arguments: "/qn /norestart"
+
 
       - name: 7-Zip
         version: "26.02"
@@ -71,11 +81,13 @@
         arguments: "/S"
 
       - name: Microsoft Teams
-        version: "1.26.18801"
+        version: "26213.1006.5014.9784"
         source: url
         source_url: "https://go.microsoft.com/fwlink/?linkid=2243204&clcid=0x409"
         installer: "TeamsBootstrapper.exe"
         product: "Microsoft Teams*"
+        detect_file: ""
+        detect_appx: "MSTeams"
         arguments: "-p"
 
       - name: Zoom Workplace

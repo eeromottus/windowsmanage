@@ -2,6 +2,29 @@
 - name: Check installed software - {{ software.name }}
   ansible.windows.win_powershell:
     script: |
+      # Method 1: Detect version from executable
+      {% if software.detect_file | default('') | length > 0 %}
+
+      $path = "{{ software.detect_file }}"
+
+      if (Test-Path $path) {
+        (Get-Item $path).VersionInfo.ProductVersion
+      }
+
+      # Method 2: Detect AppX/MSIX package
+      {% elif software.detect_appx | default('') | length > 0 %}
+
+      $app = Get-AppxPackage -AllUsers -Name "{{ software.detect_appx }}" `
+        -ErrorAction SilentlyContinue |
+        Select-Object -First 1
+
+      if ($app) {
+        $app.Version.ToString()
+      }
+
+      # Method 3: Normal HKLM Uninstall registry detection
+      {% else %}
+
       $app = Get-ItemProperty `
         "HKLM:\Software\Microsoft\Windows\CurrentVersion\Uninstall\*",
         "HKLM:\Software\WOW6432Node\Microsoft\Windows\CurrentVersion\Uninstall\*" `
@@ -12,6 +35,8 @@
       if ($app) {
         $app.DisplayVersion
       }
+
+      {% endif %}
   register: software_installed
   changed_when: false
 
