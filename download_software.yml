@@ -71,9 +71,9 @@
         product: "Zoom Workplace*"
         arguments: "/qn /norestart"
       - name: Joplin
-        version: "3.6.16"
+        version: "3.7.16"
         source: url
-        source_url: "https://github.com/laurent22/joplin/releases/download/v3.6.16/Joplin-Setup-3.6.16.exe"
+        source_url: "https://github.com/laurent22/joplin/releases/download/v3.7.16/Joplin-Setup-3.7.16.exe"
         installer: "JoplinSetup.exe"
         product: "Joplin*"
         arguments: "/S /allusers"
