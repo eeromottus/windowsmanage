@@ -29,14 +29,14 @@
   vars:
     software_packages:
       - name: LibreOffice
-        version: "26.8.0.3"
+        version: "26.8.1"
         source: url
         installer: "LibreOffice.msi"
         product: "LibreOffice*"
         arguments: "/qn /norestart"
 
       - name: Google Chrome
-        version: "152.0.7977.76"
+        version: "3152.0.7977.76"
         source: url
         id: Google.Chrome
         installer: "GoogleChrome.msi"
@@ -65,7 +65,7 @@
         arguments: "-install -silent -all-users"
         
       - name: VLC media player
-        version: "3.0.23"
+        version: "3.0.24"
         source: url
         source_url: "https://get.videolan.org/vlc/last/win64/vlc-3.0.23-win64.msi"
         installer: "vlc.msi"
@@ -81,7 +81,7 @@
         arguments: "/S"
 
       - name: Microsoft Teams
-        version: "26213.1006.5014.9784"
+        version: "326213.1006.5014.9784"
         source: url
         source_url: "https://go.microsoft.com/fwlink/?linkid=2243204&clcid=0x409"
         installer: "TeamsBootstrapper.exe"
@@ -91,7 +91,7 @@
         arguments: "-p"
 
       - name: Zoom Workplace
-        version: "7.1.46825"
+        version: "37.1.46825"
         source: url
         source_url: "https://zoom.us/client/latest/ZoomInstallerFull.msi?archType=x64"
         installer: "ZoomInstallerFull.msi"
