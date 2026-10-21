@@ -36,7 +36,7 @@
         arguments: "/qn /norestart"
 
       - name: Google Chrome
-        version: "3152.0.7977.76"
+        version: "156.0.8078.48"
         source: url
         id: Google.Chrome
         installer: "GoogleChrome.msi"
@@ -81,7 +81,7 @@
         arguments: "/S"
 
       - name: Microsoft Teams
-        version: "326213.1006.5014.9784"
+        version: "1.26.21803"
         source: url
         source_url: "https://go.microsoft.com/fwlink/?linkid=2243204&clcid=0x409"
         installer: "TeamsBootstrapper.exe"
@@ -91,7 +91,7 @@
         arguments: "-p"
 
       - name: Zoom Workplace
-        version: "37.1.46825"
+        version: "7.2.48556"
         source: url
         source_url: "https://zoom.us/client/latest/ZoomInstallerFull.msi?archType=x64"
         installer: "ZoomInstallerFull.msi"
